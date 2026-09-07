@@ -1,6 +1,7 @@
 import { AmbienceRuntime } from "./ambience-runtime.js";
 import { OwnerRegistry } from "./owner-registry.js";
-import { cloneData, normalizeAmbience, validateAmbience } from "../data/schema.js";
+import { TRACK_TYPES } from "../constants.js";
+import { cloneData, normalizeAmbience, normalizeTrack, validateAmbience } from "../data/schema.js";
 
 export class AmbienceService {
   constructor({ store, backend, schedulerFactory, moduleVersion = "0.0.0" }) {
@@ -11,6 +12,7 @@ export class AmbienceService {
     this.ambiences = new Map();
     this.runtimes = new Map();
     this.owners = new OwnerRegistry();
+    this.previewHandle = null;
   }
 
   async initialize() {
@@ -37,8 +39,11 @@ export class AmbienceService {
     const ambience = normalizeAmbience(input);
     const errors = validateAmbience(ambience);
     if (errors.length) throw new Error(`Invalid ambience: ${errors.join(", ")}`);
+    const wasRunning = this.runtimes.has(ambience.id);
+    if (wasRunning) await this.stopAmbience(ambience.id);
     this.ambiences.set(ambience.id, ambience);
     await this.#persist();
+    if (wasRunning) await this.playAmbience(ambience.id);
     return cloneData(ambience);
   }
 
@@ -96,8 +101,31 @@ export class AmbienceService {
     return this.runtimes.get(ambienceId)?.setTrackIntensity(trackId, intensity) ?? false;
   }
 
+  async previewLoop(input) {
+    const track = normalizeTrack({ ...input, type: TRACK_TYPES.LOOP });
+    if (!track.source) throw new Error("Loop preview source is required");
+    await this.stopPreview();
+    this.previewHandle = await this.backend.startLoop({
+      src: track.source,
+      volume: track.volume,
+      fadeInMs: track.fadeInMs,
+      loopStart: track.loopStart,
+      loopEnd: track.loopEnd
+    });
+    return true;
+  }
+
+  async stopPreview() {
+    if (!this.previewHandle) return false;
+    const handle = this.previewHandle;
+    this.previewHandle = null;
+    await this.backend.stop(handle, { fadeOutMs: 150 });
+    return true;
+  }
+
   async stopAll() {
     await Promise.all([...this.runtimes.keys()].map((id) => this.stopAmbience(id)));
+    await this.stopPreview();
     this.owners.clearAll();
   }
 

@@ -4,9 +4,8 @@
 
 .ambience-forge-status-grid {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(100px, auto);
+  grid-template-columns: 1fr auto;
   gap: 0.35rem 1rem;
-  margin: 1rem 0 0;
 }
 
 .ambience-forge-status-grid dt {
@@ -16,4 +15,54 @@
 .ambience-forge-status-grid dd {
   margin: 0;
   text-align: right;
+}
+
+.ambience-forge-manager,
+.ambience-forge-editor {
+  min-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ambience-forge-field {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.42fr) minmax(260px, 1fr);
+  gap: 0.35rem 0.75rem;
+  align-items: center;
+}
+
+.ambience-forge-field > label {
+  font-weight: 600;
+}
+
+.ambience-forge-field > input,
+.ambience-forge-field > select,
+.ambience-forge-field > textarea {
+  width: 100%;
+}
+
+.ambience-forge-field > .hint {
+  grid-column: 2;
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.9em;
+}
+
+.ambience-forge-empty {
+  padding: 0.8rem;
+  border: 1px dashed var(--color-border-light-primary, #777);
+  border-radius: 4px;
+  opacity: 0.85;
+}
+
+
+.ambience-forge-manager-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.ambience-forge-manager-actions > button {
+  width: 100%;
 }

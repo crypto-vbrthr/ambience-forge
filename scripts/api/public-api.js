@@ -15,7 +15,8 @@ export function createPublicApi({ getService, getModuleVersion }) {
       "tracks-v1",
       "owner-requests-v1",
       "intensity-v1",
-      "synchronized-playback-v1"
+      "synchronized-playback-v1",
+      "loop-preview-v1"
     ]),
 
     isReady: () => Boolean(getService()),
@@ -62,6 +63,9 @@ export function createPublicApi({ getService, getModuleVersion }) {
       trackId,
       intensity
     }, { broadcast }),
+
+    previewLoop: (track) => service().previewLoop(track),
+    stopPreview: () => service().stopPreview(),
 
     stopAll: (options = {}) => executeSynchronized(service(), {
       command: COMMANDS.STOP_ALL

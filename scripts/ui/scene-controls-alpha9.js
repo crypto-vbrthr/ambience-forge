@@ -1,5 +1,5 @@
 import { MODULE_ID } from "../constants.js";
-import { openAmbienceManager } from "./ambience-manager.js";
+import { openAmbienceManager } from "./ambience-manager-alpha9.js";
 import { notifyStopped, openStatusDialog } from "./status-dialog.js";
 
 const ANCHOR_TOOL = "__ambience-forge-anchor";

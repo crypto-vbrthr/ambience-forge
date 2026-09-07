@@ -2,7 +2,7 @@
 
 Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finished audio assets. It deliberately does not edit or process audio beyond volume and time-based fades.
 
-## 0.1.0-alpha.3 foundation
+## 0.1.0-alpha.4 foundation
 
 This development slice establishes:
 
@@ -28,3 +28,15 @@ The full composition editor and scene emitter tooling are intentionally not part
 
 - Fix Foundry V14 DialogV2 status dialog by keeping the trusted outer content div attribute-free.
 - Add a hidden non-interactive anchor for the custom control's default active tool.
+
+
+## Alpha.4
+
+The first usable composition workflow is included: Ambience Manager, create/edit/duplicate/delete compositions, add and edit loop tracks, Foundry audio file picker, local loop preview, playback start/stop, volume and fade settings, and optional loop start/end points.
+
+
+## alpha.6 fix
+
+- Reworked the Ambience Manager buttons to execute their actions directly from each DialogV2 button callback instead of routing callback results through the dialog-level `submit` handler.
+- The selected ambience is now read first from the live DialogV2 form/DOM, with the tracked selection used only as a fallback. This prevents **Edit** from accidentally entering the new-composition path when Foundry does not expose the selection through `button.form` as expected.
+- Added regression tests for live-selection precedence and direct manager action callbacks.
