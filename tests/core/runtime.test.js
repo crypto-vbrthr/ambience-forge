@@ -133,3 +133,29 @@ test("runtime exposes and updates live intensity state", async () => {
   await runtime.setTrackIntensity("rain", 1);
   assert.equal(runtime.getTrackIntensities().rain, 1);
 });
+
+
+test("runtime exposes live track volumes and can stop and restart individual tracks", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    name: "Layered Forest",
+    masterVolume: 0.5,
+    tracks: [{ id: "forest", name: "Forest", type: "audio", source: "forest.ogg", repeat: true, volume: 0.8 }]
+  });
+  const runtime = new AmbienceRuntime({ ambience, backend });
+  await runtime.start();
+  assert.equal(runtime.getTrackVolumes().forest, 0.8);
+  assert.equal(runtime.getTrackActiveStates().forest, true);
+
+  await runtime.setTrackVolume("forest", 0.25, { durationMs: 120 });
+  assert.equal(runtime.getTrackVolumes().forest, 0.25);
+  const set = backend.events.find((event) => event.type === "setVolume");
+  assert.equal(set.volume, 0.125);
+  assert.equal(set.options.durationMs, 120);
+
+  await runtime.setTrackActive("forest", false);
+  assert.equal(runtime.getTrackActiveStates().forest, false);
+  await runtime.setTrackActive("forest", true);
+  assert.equal(runtime.getTrackActiveStates().forest, true);
+  assert.equal(backend.events.filter((event) => event.type === "startLoop").length, 2);
+});

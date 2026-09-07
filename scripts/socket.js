@@ -7,6 +7,7 @@ export const COMMANDS = Object.freeze({
   RELEASE: "release",
   MASTER_VOLUME: "master-volume",
   TRACK_VOLUME: "track-volume",
+  TRACK_ACTIVE: "track-active",
   TRACK_INTENSITY: "track-intensity",
   STOP_ALL: "stop-all"
 });
@@ -37,6 +38,8 @@ export async function executeCommand(service, message) {
       return service.setMasterVolume(message.ambienceId, message.volume, { durationMs: message.durationMs ?? 0 });
     case COMMANDS.TRACK_VOLUME:
       return service.setTrackVolume(message.ambienceId, message.trackId, message.volume, { durationMs: message.durationMs ?? 0 });
+    case COMMANDS.TRACK_ACTIVE:
+      return service.setTrackActive(message.ambienceId, message.trackId, message.active);
     case COMMANDS.TRACK_INTENSITY:
       return service.setTrackIntensity(message.ambienceId, message.trackId, message.intensity);
     case COMMANDS.STOP_ALL:

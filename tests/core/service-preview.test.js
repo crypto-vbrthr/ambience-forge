@@ -104,3 +104,18 @@ test("intensity preview crossfades between ordered variants", async () => {
   assert.equal(fade.options.volume, 0.6);
   assert.equal(fade.options.durationMs, 2500);
 });
+
+
+test("service state exposes live per-track volume and active state", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{ id: "a", name: "Forest", tracks: [{ id: "t", name: "Wind", type: "audio", source: "wind.ogg", repeat: true, volume: 0.7 }] }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+  await service.playAmbience("a");
+  assert.equal(service.getState().trackVolumes.a.t, 0.7);
+  assert.equal(service.getState().trackActiveStates.a.t, true);
+  await service.setTrackVolume("a", "t", 0.3);
+  await service.setTrackActive("a", "t", false);
+  assert.equal(service.getState().trackVolumes.a.t, 0.3);
+  assert.equal(service.getState().trackActiveStates.a.t, false);
+});

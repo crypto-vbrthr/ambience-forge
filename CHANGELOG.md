@@ -6,6 +6,26 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## [0.1.0-alpha.19] - 2026-09-07
+
+### Changed
+- Quick Control now displays the temporary-playback notice only once at the top of the window.
+- Removed repeated per-composition and per-track live-volume hints to preserve vertical space.
+- Tightened Quick Control spacing for large compositions with many tracks.
+
+## [0.1.0-alpha.18] - 2026-09-07
+
+### Added
+- Per-track live volume sliders in **Quick Control** for every enabled track of a running composition.
+- Per-track live start/stop toggle in Quick Control.
+- Runtime state now exposes live track volumes and active/stopped track states.
+- Public `setTrackActive()` API method and synchronized socket command.
+- `track-live-control-v1` API capability.
+
+### Changed
+- Quick Control now shows each track as an individual live channel with its own controls.
+- Live track-volume changes remain temporary and do not modify the saved composition.
+
 ## [0.1.0-alpha.17] - 2026-09-07
 
 ### Added

@@ -46,6 +46,26 @@ export class AmbienceRuntime {
     return true;
   }
 
+  getTrackVolumes() {
+    return Object.fromEntries([...this.controllers.entries()]
+      .map(([trackId, controller]) => [trackId, controller.track.volume ?? 1]));
+  }
+
+  getTrackActiveStates() {
+    return Object.fromEntries([...this.controllers.entries()]
+      .map(([trackId, controller]) => [trackId, Boolean(controller.running)]));
+  }
+
+  async setTrackActive(trackId, active) {
+    const controller = this.controllers.get(trackId);
+    if (!controller) return false;
+    const desired = Boolean(active);
+    if (controller.running === desired) return true;
+    if (desired) await controller.start();
+    else await controller.stop();
+    return true;
+  }
+
   getTrackIntensities() {
     return Object.fromEntries([...this.controllers.entries()]
       .filter(([, controller]) => typeof controller.setIntensity === "function")

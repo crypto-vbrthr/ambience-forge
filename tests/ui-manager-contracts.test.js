@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha17.js", import.meta.url), "utf8");
-const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha17.js", import.meta.url), "utf8");
+const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha19.js", import.meta.url), "utf8");
 
 test("ambience manager and ambience editor use one persistent ApplicationV2 instead of DialogV2 submit routing", () => {
   assert.match(source, /const ApplicationV2 = foundry\.applications\.api\.ApplicationV2/);
@@ -37,7 +37,7 @@ test("audio track preview stays inside the persistent ApplicationV2 and does not
   assert.doesNotMatch(audioAction, /render\(true\)/);
 });
 
-test("scene controls expose the alpha17 manager", () => {
+test("scene controls expose the current manager", () => {
   assert.match(controls, /ambience-manager-alpha17\.js/);
   assert.match(controls, /manager: \{/);
   assert.match(controls, /onChange: \(\) => openAmbienceManager\(api\)/);

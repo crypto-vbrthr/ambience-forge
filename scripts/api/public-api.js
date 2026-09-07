@@ -21,7 +21,8 @@ export function createPublicApi({ getService, getModuleVersion }) {
       "random-preview-v1",
       "sequence-preview-v1",
       "intensity-preview-v1",
-      "master-volume-v1"
+      "master-volume-v1",
+      "track-live-control-v1"
     ]),
 
     isReady: () => Boolean(getService()),
@@ -67,6 +68,13 @@ export function createPublicApi({ getService, getModuleVersion }) {
       trackId,
       volume,
       durationMs
+    }, { broadcast }),
+
+    setTrackActive: (ambienceId, trackId, active, { broadcast = true } = {}) => executeSynchronized(service(), {
+      command: COMMANDS.TRACK_ACTIVE,
+      ambienceId,
+      trackId,
+      active: Boolean(active)
     }, { broadcast }),
 
     setTrackIntensity: (ambienceId, trackId, intensity, { broadcast = true } = {}) => executeSynchronized(service(), {

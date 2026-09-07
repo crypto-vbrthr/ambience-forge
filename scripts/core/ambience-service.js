@@ -38,6 +38,8 @@ export class AmbienceService {
     return {
       activeAmbienceIds: [...this.runtimes.keys()],
       masterVolumes: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.masterVolume])),
+      trackVolumes: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackVolumes()])),
+      trackActiveStates: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackActiveStates()])),
       trackIntensities: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackIntensities()])),
       owners: Object.fromEntries([...this.owners.ownersByKey.entries()].map(([key, owners]) => [key, [...owners]]))
     };
@@ -107,6 +109,10 @@ export class AmbienceService {
 
   async setTrackVolume(ambienceId, trackId, volume, options = {}) {
     return this.runtimes.get(ambienceId)?.setTrackVolume(trackId, volume, options) ?? false;
+  }
+
+  async setTrackActive(ambienceId, trackId, active) {
+    return this.runtimes.get(ambienceId)?.setTrackActive(trackId, active) ?? false;
   }
 
   async setTrackIntensity(ambienceId, trackId, intensity) {
