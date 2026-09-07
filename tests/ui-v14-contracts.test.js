@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { registerSceneControls } from "../scripts/ui/scene-controls-alpha15.js";
+import { registerSceneControls } from "../scripts/ui/scene-controls-alpha16.js";
 
-const controlsSource = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha15.js", import.meta.url), "utf8");
+const controlsSource = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha16.js", import.meta.url), "utf8");
 
 test("scene control tool record keys match their names", () => {
   globalThis.game = { user: { isGM: true } };

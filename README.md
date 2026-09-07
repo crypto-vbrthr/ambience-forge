@@ -10,7 +10,7 @@ This development slice establishes:
 - English and German localization from the first UI surface onward
 - public, versioned module API
 - socket command foundation for GM-authoritative synchronized playback
-- a Foundry audio backend which uses `foundry.audio.Sound` with `forceBuffer: true` for loop tracks, avoiding Playlist repeat behavior
+- a direct Web Audio backend which decodes repeating tracks into `AudioBufferSourceNode` loops, avoiding Playlist repeat behavior
 - loop, random, sequence, and intensity runtime controllers
 - owner/reference tracking for optional integrations
 - versioned ambience schema plus import/export helpers
@@ -74,3 +74,10 @@ Adds the first Random track editor with sound lists, random minimum/maximum paus
 
 - Composition-level master volume with live runtime control; track volume is multiplied by the master volume.
 - Slider-based volume controls for composition and tracks.
+
+## Alpha 16
+
+- Adds the persistent Intensity Track editor.
+- Intensity variants are ordered from low to high and crossfade over the configured transition time.
+- Intensity preview can be changed live with the slider.
+- Running compositions expose temporary live intensity sliders in the Ambience Manager.

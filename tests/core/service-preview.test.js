@@ -80,3 +80,27 @@ test("sequence preview follows list order or randomized order", async () => {
   assert.equal(randomFirst, "song1.ogg");
   assert.equal(randomSecond, "song2.ogg");
 });
+
+test("intensity preview crossfades between ordered variants", async () => {
+  const backend = new FakeAudioBackend();
+  const service = new AmbienceService({ store: new MemoryStore(), backend });
+  await service.initialize();
+  const track = {
+    name: "Rain",
+    volume: 0.6,
+    intensity: 0,
+    transitionMs: 2500,
+    variants: [
+      { name: "Light", source: "light.ogg" },
+      { name: "Medium", source: "medium.ogg" },
+      { name: "Heavy", source: "heavy.ogg" }
+    ]
+  };
+  const first = await service.previewIntensity(track);
+  assert.equal(first, "light.ogg");
+  await service.setPreviewIntensity(1);
+  const fade = backend.events.find((event) => event.type === "crossfade");
+  assert.equal(fade.options.src, "heavy.ogg");
+  assert.equal(fade.options.volume, 0.6);
+  assert.equal(fade.options.durationMs, 2500);
+});

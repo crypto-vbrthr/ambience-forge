@@ -20,6 +20,7 @@ export function createPublicApi({ getService, getModuleVersion }) {
       "loop-preview-v1",
       "random-preview-v1",
       "sequence-preview-v1",
+      "intensity-preview-v1",
       "master-volume-v1"
     ]),
 
@@ -79,6 +80,8 @@ export function createPublicApi({ getService, getModuleVersion }) {
     previewLoop: (track) => service().previewLoop(track),
     previewRandom: (track) => service().previewRandom(track),
     previewSequence: (track) => service().previewSequence(track),
+    previewIntensity: (track) => service().previewIntensity(track),
+    setPreviewIntensity: (intensity) => service().setPreviewIntensity(intensity),
     stopPreview: () => service().stopPreview(),
 
     stopAll: (options = {}) => executeSynchronized(service(), {

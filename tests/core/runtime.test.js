@@ -113,3 +113,23 @@ test("master volume multiplies track volume and can change live", async () => {
   assert.equal(set.volume, 0.1);
   assert.equal(set.options.durationMs, 150);
 });
+
+
+test("runtime exposes and updates live intensity state", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    name: "Storm",
+    tracks: [{
+      id: "rain",
+      name: "Rain",
+      type: "intensity",
+      intensity: 0,
+      variants: [{ source: "light.ogg" }, { source: "heavy.ogg" }]
+    }]
+  });
+  const runtime = new AmbienceRuntime({ ambience, backend });
+  await runtime.start();
+  assert.equal(runtime.getTrackIntensities().rain, 0);
+  await runtime.setTrackIntensity("rain", 1);
+  assert.equal(runtime.getTrackIntensities().rain, 1);
+});

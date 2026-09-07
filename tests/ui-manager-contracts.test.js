@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha15.js", import.meta.url), "utf8");
-const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha15.js", import.meta.url), "utf8");
+const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha16.js", import.meta.url), "utf8");
+const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha16.js", import.meta.url), "utf8");
 
 test("ambience manager and ambience editor use one persistent ApplicationV2 instead of DialogV2 submit routing", () => {
   assert.match(source, /const ApplicationV2 = foundry\.applications\.api\.ApplicationV2/);
@@ -37,8 +37,8 @@ test("audio track preview stays inside the persistent ApplicationV2 and does not
   assert.doesNotMatch(audioAction, /render\(true\)/);
 });
 
-test("scene controls expose the alpha15 manager", () => {
-  assert.match(controls, /ambience-manager-alpha15\.js/);
+test("scene controls expose the alpha16 manager", () => {
+  assert.match(controls, /ambience-manager-alpha16\.js/);
   assert.match(controls, /manager: \{/);
   assert.match(controls, /onChange: \(\) => openAmbienceManager\(api\)/);
 });
@@ -89,4 +89,18 @@ test("volume controls are sliders and the manager exposes live master volume", (
   assert.match(source, /masterVolumePercent/);
   assert.match(source, /liveMasterVolumePercent/);
   assert.match(source, /this\.api\.setMasterVolume/);
+});
+
+
+test("intensity track editor and live runtime controls are exposed", () => {
+  assert.match(source, /this\.mode = "intensity-track"/);
+  assert.match(source, /showIntensityTrack\(/);
+  assert.match(source, /#bindIntensityTrack\(\)/);
+  assert.match(source, /#intensityTrackAction\(action\)/);
+  assert.match(source, /data-af-intensity-action/);
+  assert.match(source, /editorActionButton\("add-intensity"/);
+  assert.match(source, /this\.api\.previewIntensity\(track\)/);
+  assert.match(source, /this\.api\.setPreviewIntensity/);
+  assert.match(source, /data-af-live-intensity-track/);
+  assert.match(source, /this\.api\.setTrackIntensity/);
 });

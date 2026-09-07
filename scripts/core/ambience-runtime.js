@@ -46,6 +46,12 @@ export class AmbienceRuntime {
     return true;
   }
 
+  getTrackIntensities() {
+    return Object.fromEntries([...this.controllers.entries()]
+      .filter(([, controller]) => typeof controller.setIntensity === "function")
+      .map(([trackId, controller]) => [trackId, controller.track.intensity ?? 0]));
+  }
+
   async setTrackIntensity(trackId, intensity) {
     const controller = this.controllers.get(trackId);
     if (!controller?.setIntensity) return false;

@@ -6,6 +6,19 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## [0.1.0-alpha.16] - 2026-09-07
+
+### Added
+- Persistent **Intensity Track** editor.
+- Ordered intensity variants from low to high with add/remove/reorder controls.
+- Live preview that crossfades when the intensity slider changes.
+- Live intensity controls in the Ambience Manager while a composition is playing.
+- Public `previewIntensity()` and `setPreviewIntensity()` API methods.
+- Runtime state now exposes current live intensity values for intensity tracks.
+
+### Changed
+- The Ambience Editor now exposes all four core track types: Audio, Random, Sequence, and Intensity.
+
 ## [0.1.0-alpha.15] - 2026-09-07
 
 ### Added

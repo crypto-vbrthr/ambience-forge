@@ -17,6 +17,8 @@ export class AmbienceService {
     this.previewHandle = null;
     this.previewRandomPreviousSource = null;
     this.previewSequencePreviousSource = null;
+    this.previewIntensityTrack = null;
+    this.previewIntensityIndex = -1;
   }
 
   async initialize() {
@@ -36,6 +38,7 @@ export class AmbienceService {
     return {
       activeAmbienceIds: [...this.runtimes.keys()],
       masterVolumes: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.masterVolume])),
+      trackIntensities: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackIntensities()])),
       owners: Object.fromEntries([...this.owners.ownersByKey.entries()].map(([key, owners]) => [key, [...owners]]))
     };
   }
@@ -173,10 +176,54 @@ export class AmbienceService {
     return track.sources[index];
   }
 
+  #intensityIndex(track, intensity) {
+    if (!track.variants?.length) return -1;
+    const value = Math.min(1, Math.max(0, Number(intensity) || 0));
+    return Math.min(track.variants.length - 1, Math.round(value * (track.variants.length - 1)));
+  }
+
+  async previewIntensity(input) {
+    const track = normalizeTrack({ ...input, type: TRACK_TYPES.INTENSITY });
+    if (!track.variants.length) throw new Error("Intensity preview variants are required");
+    await this.stopPreview();
+    const index = this.#intensityIndex(track, track.intensity);
+    this.previewIntensityTrack = track;
+    this.previewIntensityIndex = index;
+    this.previewHandle = await this.backend.startLoop({
+      src: track.variants[index].source,
+      volume: track.volume,
+      fadeInMs: track.fadeInMs
+    });
+    return track.variants[index].source;
+  }
+
+  async setPreviewIntensity(intensity) {
+    if (!this.previewHandle || !this.previewIntensityTrack) return false;
+    const track = this.previewIntensityTrack;
+    track.intensity = Math.min(1, Math.max(0, Number(intensity) || 0));
+    const index = this.#intensityIndex(track, track.intensity);
+    if (index < 0 || index === this.previewIntensityIndex) return true;
+    const previous = this.previewHandle;
+    const next = await this.backend.crossfade(previous, {
+      src: track.variants[index].source,
+      volume: track.volume,
+      durationMs: track.transitionMs
+    });
+    this.previewHandle = next;
+    this.previewIntensityIndex = index;
+    return true;
+  }
+
   async stopPreview() {
-    if (!this.previewHandle) return false;
+    if (!this.previewHandle) {
+      this.previewIntensityTrack = null;
+      this.previewIntensityIndex = -1;
+      return false;
+    }
     const handle = this.previewHandle;
     this.previewHandle = null;
+    this.previewIntensityTrack = null;
+    this.previewIntensityIndex = -1;
     await this.backend.stop(handle, { fadeOutMs: 150 });
     return true;
   }
