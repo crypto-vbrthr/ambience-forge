@@ -6,6 +6,17 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## [0.1.0-alpha.17] - 2026-09-07
+
+### Added
+- Dedicated **Quick Control** ApplicationV2 for live session control.
+- Scene Control button for opening Quick Control directly from the canvas toolbar.
+- Quick start of any saved composition without entering the editor.
+- Per-running-composition live master-volume sliders.
+- Live intensity sliders for every active Intensity Track.
+- Individual stop controls and a stop-active action.
+- Compact display of the enabled tracks in each running composition.
+
 ## [0.1.0-alpha.16] - 2026-09-07
 
 ### Added

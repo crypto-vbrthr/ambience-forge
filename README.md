@@ -81,3 +81,10 @@ Adds the first Random track editor with sound lists, random minimum/maximum paus
 - Intensity variants are ordered from low to high and crossfade over the configured transition time.
 - Intensity preview can be changed live with the slider.
 - Running compositions expose temporary live intensity sliders in the Ambience Manager.
+
+## Alpha 17
+
+- Adds a dedicated **Quick Control** window for live GM use.
+- Start saved compositions without entering the editor.
+- Adjust temporary master volume and Intensity Track values while playback is running.
+- Stop individual or all active compositions from the same compact view.
