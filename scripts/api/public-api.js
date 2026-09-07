@@ -19,7 +19,8 @@ export function createPublicApi({ getService, getModuleVersion }) {
       "audio-preview-v1",
       "loop-preview-v1",
       "random-preview-v1",
-      "sequence-preview-v1"
+      "sequence-preview-v1",
+      "master-volume-v1"
     ]),
 
     isReady: () => Boolean(getService()),
@@ -50,6 +51,13 @@ export function createPublicApi({ getService, getModuleVersion }) {
       command: COMMANDS.RELEASE,
       ambienceId,
       owner
+    }, { broadcast }),
+
+    setMasterVolume: (ambienceId, volume, { durationMs = 0, broadcast = true } = {}) => executeSynchronized(service(), {
+      command: COMMANDS.MASTER_VOLUME,
+      ambienceId,
+      volume,
+      durationMs
     }, { broadcast }),
 
     setTrackVolume: (ambienceId, trackId, volume, { durationMs = 0, broadcast = true } = {}) => executeSynchronized(service(), {

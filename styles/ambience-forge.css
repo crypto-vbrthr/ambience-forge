@@ -89,3 +89,21 @@
   min-width: 2.25rem;
   padding-inline: 0;
 }
+
+.ambience-forge-volume-control {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.25rem;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.ambience-forge-volume-control input[type="range"] {
+  width: 100%;
+  margin: 0;
+}
+
+.ambience-forge-volume-control output {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

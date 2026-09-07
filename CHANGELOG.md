@@ -6,6 +6,19 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## [0.1.0-alpha.15] - 2026-09-07
+
+### Added
+- Composition-level master volume with a saved default value.
+- Live master-volume control in the Ambience Manager while a composition is playing.
+- Public `setMasterVolume()` API method and synchronized socket command.
+- `master-volume-v1` API capability.
+
+### Changed
+- Track volume is now relative to composition master volume (for example 50% × 50% = 25% effective output).
+- Audio, Random, and Sequence volume controls now use sliders with live percentage readouts.
+- Data schema increased to version 3.
+
 ## [0.1.0-alpha.14] - 2026-09-07
 
 ### Added

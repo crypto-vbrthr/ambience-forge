@@ -88,6 +88,7 @@ export function normalizeAmbience(input = {}, { idFactory = createId } = {}) {
     schemaVersion: SCHEMA_VERSION,
     name: String(input.name || ""),
     description: String(input.description || ""),
+    masterVolume: clamp(input.masterVolume ?? 1, 0, 1),
     transitionMs: Math.max(0, Number(input.transitionMs ?? 3000) || 0),
     tracks: Array.isArray(input.tracks)
       ? input.tracks.map((track) => normalizeTrack(track, { idFactory }))

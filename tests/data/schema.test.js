@@ -26,3 +26,10 @@ test("audio tracks can explicitly disable repetition", () => {
   assert.equal(track.type, "audio");
   assert.equal(track.repeat, false);
 });
+
+
+test("ambience master volume defaults to one and is clamped", () => {
+  assert.equal(normalizeAmbience({ name: "A" }).masterVolume, 1);
+  assert.equal(normalizeAmbience({ name: "A", masterVolume: 0.5 }).masterVolume, 0.5);
+  assert.equal(normalizeAmbience({ name: "A", masterVolume: 2 }).masterVolume, 1);
+});

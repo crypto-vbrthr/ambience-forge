@@ -2,10 +2,11 @@ import { chooseIndex } from "./random.js";
 import { TRACK_TYPES } from "../constants.js";
 
 class BaseTrackController {
-  constructor({ track, backend, scheduler }) {
+  constructor({ track, backend, scheduler, masterVolume = 1 }) {
     this.track = track;
     this.backend = backend;
     this.scheduler = scheduler;
+    this.masterVolume = Math.min(1, Math.max(0, Number(masterVolume) || 0));
     this.running = false;
     this.handles = new Set();
   }
@@ -22,9 +23,18 @@ class BaseTrackController {
     await Promise.all(handles.map((handle) => this.backend.stop(handle, { fadeOutMs: this.track.fadeOutMs })));
   }
 
+  get effectiveVolume() {
+    return this.track.volume * this.masterVolume;
+  }
+
   async setVolume(volume, { durationMs = 0 } = {}) {
     this.track.volume = Math.min(1, Math.max(0, Number(volume) || 0));
-    await Promise.all([...this.handles].map((handle) => this.backend.setVolume(handle, this.track.volume, { durationMs })));
+    await Promise.all([...this.handles].map((handle) => this.backend.setVolume(handle, this.effectiveVolume, { durationMs })));
+  }
+
+  async setMasterVolume(volume, { durationMs = 0 } = {}) {
+    this.masterVolume = Math.min(1, Math.max(0, Number(volume) || 0));
+    await Promise.all([...this.handles].map((handle) => this.backend.setVolume(handle, this.effectiveVolume, { durationMs })));
   }
 }
 
@@ -35,14 +45,14 @@ export class AudioTrackController extends BaseTrackController {
     const handle = this.track.repeat
       ? await this.backend.startLoop({
           src: this.track.source,
-          volume: this.track.volume,
+          volume: this.effectiveVolume,
           fadeInMs: this.track.fadeInMs,
           loopStart: this.track.loopStart,
           loopEnd: this.track.loopEnd
         })
       : await this.backend.playOneShot({
           src: this.track.source,
-          volume: this.track.volume,
+          volume: this.effectiveVolume,
           fadeInMs: this.track.fadeInMs
         });
     this.handles.add(handle);
@@ -78,7 +88,7 @@ export class RandomTrackController extends BaseTrackController {
         random: this.scheduler.random
       });
       this.previousIndex = index;
-      const handle = await this.backend.playOneShot({ src: this.track.sources[index], volume: this.track.volume });
+      const handle = await this.backend.playOneShot({ src: this.track.sources[index], volume: this.effectiveVolume });
       this.handles.add(handle);
       const nextExtra = this.track.allowOverlap ? 0 : handle.durationMs;
       this.#scheduleNext(nextExtra);
@@ -121,7 +131,7 @@ export class SequenceTrackController extends BaseTrackController {
     this.timer = this.scheduler.schedule(extraDelay + gap, async () => {
       if (!this.running) return;
       this.index = this.#nextIndex();
-      const handle = await this.backend.playOneShot({ src: this.track.sources[this.index], volume: this.track.volume });
+      const handle = await this.backend.playOneShot({ src: this.track.sources[this.index], volume: this.effectiveVolume });
       this.handles.add(handle);
       this.#scheduleNext(handle.durationMs, false);
     });
@@ -147,7 +157,7 @@ export class IntensityTrackController extends BaseTrackController {
     this.variantIndex = index;
     this.handle = await this.backend.startLoop({
       src: this.track.variants[index].source,
-      volume: this.track.volume,
+      volume: this.effectiveVolume,
       fadeInMs: this.track.fadeInMs
     });
     this.handles.add(this.handle);
@@ -160,7 +170,7 @@ export class IntensityTrackController extends BaseTrackController {
     const previous = this.handle;
     const next = await this.backend.crossfade(previous, {
       src: this.track.variants[index].source,
-      volume: this.track.volume,
+      volume: this.effectiveVolume,
       durationMs: this.track.transitionMs
     });
     if (previous) this.handles.delete(previous);
@@ -170,16 +180,16 @@ export class IntensityTrackController extends BaseTrackController {
   }
 }
 
-export function createTrackController({ track, backend, scheduler }) {
+export function createTrackController({ track, backend, scheduler, masterVolume = 1 }) {
   switch (track.type) {
     case TRACK_TYPES.AUDIO:
-      return new AudioTrackController({ track, backend, scheduler });
+      return new AudioTrackController({ track, backend, scheduler, masterVolume });
     case TRACK_TYPES.RANDOM:
-      return new RandomTrackController({ track, backend, scheduler });
+      return new RandomTrackController({ track, backend, scheduler, masterVolume });
     case TRACK_TYPES.SEQUENCE:
-      return new SequenceTrackController({ track, backend, scheduler });
+      return new SequenceTrackController({ track, backend, scheduler, masterVolume });
     case TRACK_TYPES.INTENSITY:
-      return new IntensityTrackController({ track, backend, scheduler });
+      return new IntensityTrackController({ track, backend, scheduler, masterVolume });
     default:
       throw new Error(`Unsupported Ambience Forge track type: ${track.type}`);
   }

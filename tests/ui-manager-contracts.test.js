@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha14.js", import.meta.url), "utf8");
-const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha14.js", import.meta.url), "utf8");
+const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha15.js", import.meta.url), "utf8");
+const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha15.js", import.meta.url), "utf8");
 
 test("ambience manager and ambience editor use one persistent ApplicationV2 instead of DialogV2 submit routing", () => {
   assert.match(source, /const ApplicationV2 = foundry\.applications\.api\.ApplicationV2/);
@@ -37,8 +37,8 @@ test("audio track preview stays inside the persistent ApplicationV2 and does not
   assert.doesNotMatch(audioAction, /render\(true\)/);
 });
 
-test("scene controls expose the alpha14 manager", () => {
-  assert.match(controls, /ambience-manager-alpha14\.js/);
+test("scene controls expose the alpha15 manager", () => {
+  assert.match(controls, /ambience-manager-alpha15\.js/);
   assert.match(controls, /manager: \{/);
   assert.match(controls, /onChange: \(\) => openAmbienceManager\(api\)/);
 });
@@ -80,4 +80,13 @@ test("sequence file picking and preview do not rebuild the editor", () => {
   assert.match(sequenceAction, /new FilePicker\(\{[\s\S]*type: "audio"/);
   assert.doesNotMatch(sequenceAction, /this\.render\(true\)/);
   assert.doesNotMatch(sequenceAction, /this\.close\(/);
+});
+
+
+test("volume controls are sliders and the manager exposes live master volume", () => {
+  assert.match(source, /type: "range"/);
+  assert.match(source, /data-af-volume-slider/);
+  assert.match(source, /masterVolumePercent/);
+  assert.match(source, /liveMasterVolumePercent/);
+  assert.match(source, /this\.api\.setMasterVolume/);
 });

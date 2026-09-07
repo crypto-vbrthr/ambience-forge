@@ -69,3 +69,8 @@ Adds the first Random track editor with sound lists, random minimum/maximum paus
 - Randomized sequences can avoid immediate repetition.
 - Sequence preview is exposed through the public API.
 - Adds an MIT `LICENSE` and project `CHANGELOG.md`.
+
+## Alpha 15 additions
+
+- Composition-level master volume with live runtime control; track volume is multiplied by the master volume.
+- Slider-based volume controls for composition and tracks.

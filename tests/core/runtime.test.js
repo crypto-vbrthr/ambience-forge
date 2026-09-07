@@ -94,3 +94,22 @@ test("sequence track plays entries one after another with the configured gap", a
   played = backend.events.filter((event) => event.type === "playOneShot").map((event) => event.options.src);
   assert.deepEqual(played, ["song1.ogg", "song2.ogg"]);
 });
+
+
+test("master volume multiplies track volume and can change live", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    name: "Quiet Forest",
+    masterVolume: 0.5,
+    tracks: [{ id: "forest", name: "Forest", type: "audio", source: "forest.ogg", repeat: true, volume: 0.5 }]
+  });
+  const runtime = new AmbienceRuntime({ ambience, backend });
+  await runtime.start();
+  const start = backend.events.find((event) => event.type === "startLoop");
+  assert.equal(start.options.volume, 0.25);
+
+  await runtime.setMasterVolume(0.2, { durationMs: 150 });
+  const set = backend.events.find((event) => event.type === "setVolume");
+  assert.equal(set.volume, 0.1);
+  assert.equal(set.options.durationMs, 150);
+});

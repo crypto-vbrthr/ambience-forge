@@ -35,6 +35,7 @@ export class AmbienceService {
   getState() {
     return {
       activeAmbienceIds: [...this.runtimes.keys()],
+      masterVolumes: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.masterVolume])),
       owners: Object.fromEntries([...this.owners.ownersByKey.entries()].map(([key, owners]) => [key, [...owners]]))
     };
   }
@@ -95,6 +96,10 @@ export class AmbienceService {
     const result = this.owners.release(id, owner);
     if (result.becameEmpty) await this.stopAmbience(id);
     return result.count;
+  }
+
+  async setMasterVolume(ambienceId, volume, options = {}) {
+    return this.runtimes.get(ambienceId)?.setMasterVolume(volume, options) ?? false;
   }
 
   async setTrackVolume(ambienceId, trackId, volume, options = {}) {
