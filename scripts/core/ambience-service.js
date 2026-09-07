@@ -16,6 +16,7 @@ export class AmbienceService {
     this.owners = new OwnerRegistry();
     this.previewHandle = null;
     this.previewRandomPreviousSource = null;
+    this.previewSequencePreviousSource = null;
   }
 
   async initialize() {
@@ -139,6 +140,27 @@ export class AmbienceService {
       random: this.random
     });
     this.previewRandomPreviousSource = track.sources[index];
+    this.previewHandle = await this.backend.playOneShot({
+      src: track.sources[index],
+      volume: track.volume
+    });
+    return track.sources[index];
+  }
+
+  async previewSequence(input) {
+    const track = normalizeTrack({ ...input, type: TRACK_TYPES.SEQUENCE });
+    if (!track.sources.length) throw new Error("Sequence preview sources are required");
+    await this.stopPreview();
+    let index = 0;
+    if (track.order === "random") {
+      const previous = this.previewSequencePreviousSource ? track.sources.indexOf(this.previewSequencePreviousSource) : -1;
+      index = chooseIndex(track.sources.length, {
+        previous,
+        avoidImmediateRepeat: track.avoidImmediateRepeat,
+        random: this.random
+      });
+    }
+    if (track.order === "random") this.previewSequencePreviousSource = track.sources[index];
     this.previewHandle = await this.backend.playOneShot({
       src: track.sources[index],
       volume: track.volume

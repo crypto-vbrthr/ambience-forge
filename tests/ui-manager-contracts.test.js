@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha13.js", import.meta.url), "utf8");
-const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha13.js", import.meta.url), "utf8");
+const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha14.js", import.meta.url), "utf8");
+const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha14.js", import.meta.url), "utf8");
 
 test("ambience manager and ambience editor use one persistent ApplicationV2 instead of DialogV2 submit routing", () => {
   assert.match(source, /const ApplicationV2 = foundry\.applications\.api\.ApplicationV2/);
@@ -37,8 +37,8 @@ test("audio track preview stays inside the persistent ApplicationV2 and does not
   assert.doesNotMatch(audioAction, /render\(true\)/);
 });
 
-test("scene controls expose the alpha13 manager", () => {
-  assert.match(controls, /ambience-manager-alpha13\.js/);
+test("scene controls expose the alpha14 manager", () => {
+  assert.match(controls, /ambience-manager-alpha14\.js/);
   assert.match(controls, /manager: \{/);
   assert.match(controls, /onChange: \(\) => openAmbienceManager\(api\)/);
 });
@@ -61,4 +61,23 @@ test("random source picking and preview preserve the current editor instead of r
   assert.doesNotMatch(randomAction, /openRandomTrackEditor/);
   assert.doesNotMatch(randomAction, /this\.render\(true\)/);
   assert.doesNotMatch(randomAction, /this\.close\(/);
+});
+
+
+test("sequence track editor runs inside the persistent ApplicationV2", () => {
+  assert.match(source, /this\.mode = "sequence-track"/);
+  assert.match(source, /showSequenceTrack\(/);
+  assert.match(source, /#bindSequenceTrack\(\)/);
+  assert.match(source, /#sequenceTrackAction\(action\)/);
+  assert.match(source, /data-af-sequence-action/);
+  assert.match(source, /this\.api\.previewSequence\(track\)/);
+  assert.match(source, /editorActionButton\("add-sequence"/);
+});
+
+test("sequence file picking and preview do not rebuild the editor", () => {
+  const start = source.indexOf("async #sequenceTrackAction");
+  const sequenceAction = source.slice(start, source.indexOf("#bindEditor", start));
+  assert.match(sequenceAction, /new FilePicker\(\{[\s\S]*type: "audio"/);
+  assert.doesNotMatch(sequenceAction, /this\.render\(true\)/);
+  assert.doesNotMatch(sequenceAction, /this\.close\(/);
 });

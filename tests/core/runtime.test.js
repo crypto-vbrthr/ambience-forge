@@ -74,3 +74,23 @@ test("intensity track crossfades when it selects another variant", async () => {
   assert.equal(fade.options.src, "heavy.ogg");
   assert.equal(fade.options.durationMs, 4000);
 });
+
+
+test("sequence track plays entries one after another with the configured gap", async () => {
+  const backend = new FakeAudioBackend({ durations: { "song1.ogg": 200, "song2.ogg": 200 } });
+  const clock = new ManualClock();
+  const schedulerFactory = () => new RandomScheduler({ random: () => 0, clock });
+  const ambience = normalizeAmbience({
+    name: "Tavern Band",
+    tracks: [{ id: "band", name: "Band", type: "sequence", sources: ["song1.ogg", "song2.ogg"], order: "sequential", minDelayMs: 100, maxDelayMs: 100 }]
+  });
+  const runtime = new AmbienceRuntime({ ambience, backend, schedulerFactory });
+  await runtime.start();
+  await clock.advance(0);
+  await clock.advance(299);
+  let played = backend.events.filter((event) => event.type === "playOneShot").map((event) => event.options.src);
+  assert.deepEqual(played, ["song1.ogg"]);
+  await clock.advance(1);
+  played = backend.events.filter((event) => event.type === "playOneShot").map((event) => event.options.src);
+  assert.deepEqual(played, ["song1.ogg", "song2.ogg"]);
+});

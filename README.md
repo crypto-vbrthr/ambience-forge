@@ -60,3 +60,12 @@ Adds the first Random track editor with sound lists, random minimum/maximum paus
 - Random preview and stop-preview no longer close or rerender the editor, so all unsaved field values remain intact.
 - Removing a sound updates the visible list in place.
 - Adds regression tests for persistent Random editor state, FilePicker behavior, and non-destructive preview.
+
+## Alpha 14
+
+- Adds the persistent Sequence Track editor.
+- Sequence tracks can play files in list order or randomized order.
+- Configurable minimum/maximum pauses are applied between completed files.
+- Randomized sequences can avoid immediate repetition.
+- Sequence preview is exposed through the public API.
+- Adds an MIT `LICENSE` and project `CHANGELOG.md`.

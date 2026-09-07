@@ -67,3 +67,16 @@ test("random preview chooses immediately and avoids direct repetition", async ()
   assert.deepEqual(played.map((event) => event.src), ["owl.ogg", "wolf.ogg"]);
   assert.deepEqual(played.map((event) => event.volume), [0.35, 0.35]);
 });
+
+
+test("sequence preview follows list order or randomized order", async () => {
+  const backend = new FakeAudioBackend();
+  const service = new AmbienceService({ store: new MemoryStore(), backend, random: () => 0 });
+  await service.initialize();
+  const sequential = await service.previewSequence({ sources: ["song1.ogg", "song2.ogg"], order: "sequential", volume: 0.5 });
+  assert.equal(sequential, "song1.ogg");
+  const randomFirst = await service.previewSequence({ sources: ["song1.ogg", "song2.ogg"], order: "random", avoidImmediateRepeat: true, volume: 0.5 });
+  const randomSecond = await service.previewSequence({ sources: ["song1.ogg", "song2.ogg"], order: "random", avoidImmediateRepeat: true, volume: 0.5 });
+  assert.equal(randomFirst, "song1.ogg");
+  assert.equal(randomSecond, "song2.ogg");
+});
