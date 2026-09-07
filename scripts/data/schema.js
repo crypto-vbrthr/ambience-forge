@@ -1,6 +1,7 @@
 import { SCHEMA_VERSION, TRACK_TYPES } from "../constants.js";
 
 const TRACK_TYPE_SET = new Set(Object.values(TRACK_TYPES));
+const LEGACY_LOOP_TYPE = "loop";
 
 function clamp(value, min, max) {
   const n = Number(value);
@@ -15,7 +16,8 @@ export function createId(prefix = "af") {
 }
 
 export function normalizeTrack(input = {}, { idFactory = createId } = {}) {
-  const type = TRACK_TYPE_SET.has(input.type) ? input.type : TRACK_TYPES.LOOP;
+  const legacyLoop = input.type === LEGACY_LOOP_TYPE;
+  const type = legacyLoop ? TRACK_TYPES.AUDIO : (TRACK_TYPE_SET.has(input.type) ? input.type : TRACK_TYPES.AUDIO);
   const base = {
     id: String(input.id || idFactory("track")),
     name: String(input.name || ""),
@@ -26,10 +28,11 @@ export function normalizeTrack(input = {}, { idFactory = createId } = {}) {
     fadeOutMs: Math.max(0, Number(input.fadeOutMs ?? 1500) || 0)
   };
 
-  if (type === TRACK_TYPES.LOOP) {
+  if (type === TRACK_TYPES.AUDIO) {
     return {
       ...base,
       source: String(input.source || ""),
+      repeat: legacyLoop ? true : input.repeat !== false,
       loopStart: input.loopStart == null ? null : Math.max(0, Number(input.loopStart) || 0),
       loopEnd: input.loopEnd == null ? null : Math.max(0, Number(input.loopEnd) || 0)
     };
@@ -100,7 +103,7 @@ export function validateAmbience(input) {
 
   for (const track of Array.isArray(input.tracks) ? input.tracks : []) {
     if (!TRACK_TYPE_SET.has(track.type)) errors.push(`track.typeInvalid:${track.id ?? "unknown"}`);
-    if (track.type === TRACK_TYPES.LOOP && !track.source) errors.push(`track.sourceRequired:${track.id ?? "unknown"}`);
+    if (track.type === TRACK_TYPES.AUDIO && !track.source) errors.push(`track.sourceRequired:${track.id ?? "unknown"}`);
     if ([TRACK_TYPES.RANDOM, TRACK_TYPES.SEQUENCE].includes(track.type) && !track.sources?.length) {
       errors.push(`track.sourcesRequired:${track.id ?? "unknown"}`);
     }

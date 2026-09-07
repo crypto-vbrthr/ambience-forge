@@ -40,3 +40,23 @@ The first usable composition workflow is included: Ambience Manager, create/edit
 - Reworked the Ambience Manager buttons to execute their actions directly from each DialogV2 button callback instead of routing callback results through the dialog-level `submit` handler.
 - The selected ambience is now read first from the live DialogV2 form/DOM, with the tracked selection used only as a fallback. This prevents **Edit** from accidentally entering the new-composition path when Foundry does not expose the selection through `button.form` as expected.
 - Added regression tests for live-selection precedence and direct manager action callbacks.
+
+## Alpha 10
+
+Adds the first Random track editor with sound lists, random minimum/maximum pauses, immediate-repeat avoidance, optional overlap, and immediate one-shot preview.
+
+## Alpha 11
+
+- Replaces the special "Loop" track concept with a general single-file **Audio track**.
+- Audio tracks can play once or enable **Repeat (loop)**; existing legacy `type: "loop"` tracks migrate automatically to repeating audio tracks.
+- The audio source field now has an inline folder icon. The Foundry V14 audio FilePicker writes the selected path directly into the visible field instead of closing and reopening the editor.
+- Adds `previewAudio()` to the public API while keeping `previewLoop()` as a backwards-compatible alias.
+- Schema version increased to 2.
+
+## Alpha 13
+
+- Moves the Random track editor from transient `DialogV2` submit/reopen flows into the same persistent `ApplicationV2` used by the Ambience Manager and Audio track editor.
+- Choosing a Random sound now appends it directly to the visible list without rebuilding the editor, preserving name, volume, delay, and checkbox values.
+- Random preview and stop-preview no longer close or rerender the editor, so all unsaved field values remain intact.
+- Removing a sound updates the visible list in place.
+- Adds regression tests for persistent Random editor state, FilePicker behavior, and non-destructive preview.

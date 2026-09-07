@@ -1,18 +1,21 @@
 import { AmbienceRuntime } from "./ambience-runtime.js";
 import { OwnerRegistry } from "./owner-registry.js";
 import { TRACK_TYPES } from "../constants.js";
+import { chooseIndex } from "./random.js";
 import { cloneData, normalizeAmbience, normalizeTrack, validateAmbience } from "../data/schema.js";
 
 export class AmbienceService {
-  constructor({ store, backend, schedulerFactory, moduleVersion = "0.0.0" }) {
+  constructor({ store, backend, schedulerFactory, moduleVersion = "0.0.0", random = Math.random }) {
     this.store = store;
     this.backend = backend;
     this.schedulerFactory = schedulerFactory;
     this.moduleVersion = moduleVersion;
+    this.random = random;
     this.ambiences = new Map();
     this.runtimes = new Map();
     this.owners = new OwnerRegistry();
     this.previewHandle = null;
+    this.previewRandomPreviousSource = null;
   }
 
   async initialize() {
@@ -101,18 +104,46 @@ export class AmbienceService {
     return this.runtimes.get(ambienceId)?.setTrackIntensity(trackId, intensity) ?? false;
   }
 
-  async previewLoop(input) {
-    const track = normalizeTrack({ ...input, type: TRACK_TYPES.LOOP });
-    if (!track.source) throw new Error("Loop preview source is required");
+  async previewAudio(input) {
+    const track = normalizeTrack({ ...input, type: TRACK_TYPES.AUDIO });
+    if (!track.source) throw new Error("Audio preview source is required");
     await this.stopPreview();
-    this.previewHandle = await this.backend.startLoop({
-      src: track.source,
-      volume: track.volume,
-      fadeInMs: track.fadeInMs,
-      loopStart: track.loopStart,
-      loopEnd: track.loopEnd
-    });
+    this.previewHandle = track.repeat
+      ? await this.backend.startLoop({
+          src: track.source,
+          volume: track.volume,
+          fadeInMs: track.fadeInMs,
+          loopStart: track.loopStart,
+          loopEnd: track.loopEnd
+        })
+      : await this.backend.playOneShot({
+          src: track.source,
+          volume: track.volume,
+          fadeInMs: track.fadeInMs
+        });
     return true;
+  }
+
+  async previewLoop(input) {
+    return this.previewAudio({ ...input, repeat: true });
+  }
+
+  async previewRandom(input) {
+    const track = normalizeTrack({ ...input, type: TRACK_TYPES.RANDOM });
+    if (!track.sources.length) throw new Error("Random preview sources are required");
+    await this.stopPreview();
+    const previous = this.previewRandomPreviousSource ? track.sources.indexOf(this.previewRandomPreviousSource) : -1;
+    const index = chooseIndex(track.sources.length, {
+      previous,
+      avoidImmediateRepeat: track.avoidImmediateRepeat,
+      random: this.random
+    });
+    this.previewRandomPreviousSource = track.sources[index];
+    this.previewHandle = await this.backend.playOneShot({
+      src: track.sources[index],
+      volume: track.volume
+    });
+    return track.sources[index];
   }
 
   async stopPreview() {

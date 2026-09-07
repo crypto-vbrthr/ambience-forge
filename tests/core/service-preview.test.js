@@ -9,11 +9,11 @@ class MemoryStore {
   async saveAll(items) { this.items = items; }
 }
 
-test("loop preview uses buffered loop backend settings and can be stopped", async () => {
+test("audio preview loops when Repeat is enabled and can be stopped", async () => {
   const backend = new FakeAudioBackend();
   const service = new AmbienceService({ store: new MemoryStore(), backend });
   await service.initialize();
-  await service.previewLoop({ source: "rain.ogg", volume: 0.42, fadeInMs: 500, loopStart: 1.25, loopEnd: 9.5 });
+  await service.previewAudio({ source: "rain.ogg", repeat: true, volume: 0.42, fadeInMs: 500, loopStart: 1.25, loopEnd: 9.5 });
   const start = backend.events.find((event) => event.type === "startLoop");
   assert.equal(start.options.src, "rain.ogg");
   assert.equal(start.options.volume, 0.42);
@@ -24,14 +24,46 @@ test("loop preview uses buffered loop backend settings and can be stopped", asyn
   assert.equal(stop.options.fadeOutMs, 150);
 });
 
+test("audio preview plays once when Repeat is disabled", async () => {
+  const backend = new FakeAudioBackend();
+  const service = new AmbienceService({ store: new MemoryStore(), backend });
+  await service.initialize();
+  await service.previewAudio({ source: "door.ogg", repeat: false, volume: 0.6, fadeInMs: 100 });
+  const play = backend.events.find((event) => event.type === "playOneShot");
+  assert.equal(play.options.src, "door.ogg");
+  assert.equal(play.options.volume, 0.6);
+});
+
+test("legacy previewLoop remains a looping compatibility alias", async () => {
+  const backend = new FakeAudioBackend();
+  const service = new AmbienceService({ store: new MemoryStore(), backend });
+  await service.initialize();
+  await service.previewLoop({ source: "legacy.ogg" });
+  assert.equal(backend.events.find((event) => event.type === "startLoop")?.options.src, "legacy.ogg");
+});
+
 test("editing an active ambience restarts it with the updated definition", async () => {
   const backend = new FakeAudioBackend();
   const store = new MemoryStore([{ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "loop", source: "old.ogg" }] }]);
   const service = new AmbienceService({ store, backend });
   await service.initialize();
   await service.playAmbience("a");
-  await service.upsertAmbience({ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "loop", source: "new.ogg" }] });
+  await service.upsertAmbience({ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "new.ogg", repeat: true }] });
   const starts = backend.events.filter((event) => event.type === "startLoop").map((event) => event.options.src);
   assert.deepEqual(starts, ["old.ogg", "new.ogg"]);
   assert.deepEqual(service.getState().activeAmbienceIds, ["a"]);
+});
+
+test("random preview chooses immediately and avoids direct repetition", async () => {
+  const backend = new FakeAudioBackend();
+  const service = new AmbienceService({ store: new MemoryStore(), backend, random: () => 0 });
+  await service.initialize();
+  const track = { sources: ["owl.ogg", "wolf.ogg"], volume: 0.35, avoidImmediateRepeat: true };
+  const first = await service.previewRandom(track);
+  const second = await service.previewRandom(track);
+  assert.equal(first, "owl.ogg");
+  assert.equal(second, "wolf.ogg");
+  const played = backend.events.filter((event) => event.type === "playOneShot").map((event) => event.options);
+  assert.deepEqual(played.map((event) => event.src), ["owl.ogg", "wolf.ogg"]);
+  assert.deepEqual(played.map((event) => event.volume), [0.35, 0.35]);
 });

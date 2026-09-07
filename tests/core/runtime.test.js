@@ -6,11 +6,11 @@ import { normalizeAmbience } from "../../scripts/data/schema.js";
 import { FakeAudioBackend } from "../helpers/fake-audio-backend.js";
 import { ManualClock } from "../helpers/manual-clock.js";
 
-test("runtime starts loop tracks and fades them out on stop", async () => {
+test("runtime starts repeating audio tracks as buffered loops and fades them out on stop", async () => {
   const backend = new FakeAudioBackend();
   const ambience = normalizeAmbience({
     name: "Forest",
-    tracks: [{ id: "forest", name: "Forest", type: "loop", source: "forest.ogg", volume: 0.5, fadeInMs: 2000, fadeOutMs: 1500 }]
+    tracks: [{ id: "forest", name: "Forest", type: "audio", source: "forest.ogg", repeat: true, volume: 0.5, fadeInMs: 2000, fadeOutMs: 1500 }]
   });
   const runtime = new AmbienceRuntime({ ambience, backend });
   await runtime.start();
@@ -19,6 +19,20 @@ test("runtime starts loop tracks and fades them out on stop", async () => {
   await runtime.stop();
   const stop = backend.events.find((event) => event.type === "stop");
   assert.equal(stop.options.fadeOutMs, 1500);
+});
+
+test("runtime plays a non-repeating audio track once", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    name: "Intro",
+    tracks: [{ id: "intro", name: "Intro", type: "audio", source: "intro.ogg", repeat: false, volume: 0.75, fadeInMs: 250 }]
+  });
+  const runtime = new AmbienceRuntime({ ambience, backend });
+  await runtime.start();
+  const play = backend.events.find((event) => event.type === "playOneShot");
+  assert.equal(play.options.src, "intro.ogg");
+  assert.equal(play.options.volume, 0.75);
+  assert.equal(play.options.fadeInMs, 250);
 });
 
 test("random track uses random delays and avoids direct repetition", async () => {

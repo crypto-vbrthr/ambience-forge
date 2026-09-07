@@ -10,7 +10,7 @@ const source = fs.readFileSync(path.resolve(here, "../../scripts/api/public-api.
 test("public API keeps the agreed integration surface", () => {
   for (const method of [
     "isReady", "getAmbiences", "getAmbience", "getState", "playAmbience", "stopAmbience",
-    "requestAmbience", "releaseAmbience", "setTrackVolume", "setTrackIntensity", "previewLoop", "stopPreview", "stopAll"
+    "requestAmbience", "releaseAmbience", "setTrackVolume", "setTrackIntensity", "previewAudio", "previewLoop", "previewRandom", "stopPreview", "stopAll"
   ]) {
     assert.match(source, new RegExp(`\\b${method}\\b`));
   }

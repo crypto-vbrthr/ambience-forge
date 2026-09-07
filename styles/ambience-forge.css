@@ -66,3 +66,26 @@
 .ambience-forge-manager-actions > button {
   width: 100%;
 }
+
+.ambience-forge-field > select[size] {
+  min-height: 8rem;
+  font-family: monospace;
+}
+
+.ambience-forge-path-control {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.ambience-forge-path-control > input {
+  width: 100%;
+}
+
+.ambience-forge-path-control > button {
+  width: 2.25rem;
+  min-width: 2.25rem;
+  padding-inline: 0;
+}

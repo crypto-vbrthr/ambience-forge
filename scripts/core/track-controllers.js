@@ -28,17 +28,23 @@ class BaseTrackController {
   }
 }
 
-export class LoopTrackController extends BaseTrackController {
+export class AudioTrackController extends BaseTrackController {
   async start() {
     await super.start();
     if (!this.track.source) return;
-    const handle = await this.backend.startLoop({
-      src: this.track.source,
-      volume: this.track.volume,
-      fadeInMs: this.track.fadeInMs,
-      loopStart: this.track.loopStart,
-      loopEnd: this.track.loopEnd
-    });
+    const handle = this.track.repeat
+      ? await this.backend.startLoop({
+          src: this.track.source,
+          volume: this.track.volume,
+          fadeInMs: this.track.fadeInMs,
+          loopStart: this.track.loopStart,
+          loopEnd: this.track.loopEnd
+        })
+      : await this.backend.playOneShot({
+          src: this.track.source,
+          volume: this.track.volume,
+          fadeInMs: this.track.fadeInMs
+        });
     this.handles.add(handle);
   }
 }
@@ -166,8 +172,8 @@ export class IntensityTrackController extends BaseTrackController {
 
 export function createTrackController({ track, backend, scheduler }) {
   switch (track.type) {
-    case TRACK_TYPES.LOOP:
-      return new LoopTrackController({ track, backend, scheduler });
+    case TRACK_TYPES.AUDIO:
+      return new AudioTrackController({ track, backend, scheduler });
     case TRACK_TYPES.RANDOM:
       return new RandomTrackController({ track, backend, scheduler });
     case TRACK_TYPES.SEQUENCE:

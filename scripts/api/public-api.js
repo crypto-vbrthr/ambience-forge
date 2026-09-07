@@ -16,7 +16,9 @@ export function createPublicApi({ getService, getModuleVersion }) {
       "owner-requests-v1",
       "intensity-v1",
       "synchronized-playback-v1",
-      "loop-preview-v1"
+      "audio-preview-v1",
+      "loop-preview-v1",
+      "random-preview-v1"
     ]),
 
     isReady: () => Boolean(getService()),
@@ -64,7 +66,9 @@ export function createPublicApi({ getService, getModuleVersion }) {
       intensity
     }, { broadcast }),
 
+    previewAudio: (track) => service().previewAudio(track),
     previewLoop: (track) => service().previewLoop(track),
+    previewRandom: (track) => service().previewRandom(track),
     stopPreview: () => service().stopPreview(),
 
     stopAll: (options = {}) => executeSynchronized(service(), {

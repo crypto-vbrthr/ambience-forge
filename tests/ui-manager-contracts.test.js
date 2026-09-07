@@ -2,16 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha9.js", import.meta.url), "utf8");
-const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha9.js", import.meta.url), "utf8");
+const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha13.js", import.meta.url), "utf8");
+const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha13.js", import.meta.url), "utf8");
 
 test("ambience manager and ambience editor use one persistent ApplicationV2 instead of DialogV2 submit routing", () => {
   assert.match(source, /const ApplicationV2 = foundry\.applications\.api\.ApplicationV2/);
   assert.match(source, /class AmbienceForgeManagerApp extends ApplicationV2/);
   assert.match(source, /showManager\(/);
   assert.match(source, /showEditor\(/);
-  const beforeLoopEditor = source.slice(0, source.indexOf("function loopTrackContent"));
-  assert.doesNotMatch(beforeLoopEditor, /new DialogV2\(/);
+  const beforeAudioEditor = source.slice(0, source.indexOf("function audioSourceControl"));
+  assert.doesNotMatch(beforeAudioEditor, /new DialogV2\(/);
 });
 
 test("ApplicationV2 rendering replaces its content with generated DOM", () => {
@@ -20,14 +20,45 @@ test("ApplicationV2 rendering replaces its content with generated DOM", () => {
   assert.match(source, /content\.replaceChildren\(result\)/);
 });
 
-test("loop editor still uses Foundry V14 audio FilePicker and preview API", () => {
-  assert.match(source, /new FilePicker\(\{[\s\S]*type: "audio"/);
-  assert.match(source, /api\.previewLoop\(result\.track\)/);
-  assert.match(source, /api\.stopPreview\(\)/);
+test("audio track editor has an inline audio picker icon and updates the source field directly", () => {
+  assert.match(source, /data-af-audio-browse/);
+  assert.match(source, /fa-solid fa-folder-open/);
+  assert.match(source, /field: source/);
+  assert.match(source, /callback: \(path\) => \{[\s\S]*source\.value = String\(path/);
+  assert.match(source, /this\.api\.previewAudio\(track\)/);
+  assert.match(source, /name="repeat"|checkbox\("repeat"/);
 });
 
-test("scene controls expose the alpha9 manager", () => {
-  assert.match(controls, /ambience-manager-alpha9\.js/);
+test("audio track preview stays inside the persistent ApplicationV2 and does not recreate the editor", () => {
+  assert.match(source, /this\.mode = "audio-track"/);
+  assert.match(source, /#audioTrackAction\(action\)/);
+  const audioAction = source.slice(source.indexOf("async #audioTrackAction"), source.indexOf("#bindEditor"));
+  assert.doesNotMatch(audioAction, /openAudioTrackEditor/);
+  assert.doesNotMatch(audioAction, /render\(true\)/);
+});
+
+test("scene controls expose the alpha13 manager", () => {
+  assert.match(controls, /ambience-manager-alpha13\.js/);
   assert.match(controls, /manager: \{/);
   assert.match(controls, /onChange: \(\) => openAmbienceManager\(api\)/);
+});
+
+test("random track editor runs inside the persistent ApplicationV2", () => {
+  assert.match(source, /this\.mode = "random-track"/);
+  assert.match(source, /showRandomTrack\(/);
+  assert.match(source, /#bindRandomTrack\(\)/);
+  assert.match(source, /#randomTrackAction\(action\)/);
+  assert.match(source, /data-af-random-action/);
+  assert.match(source, /this\.api\.previewRandom\(track\)/);
+});
+
+test("random source picking and preview preserve the current editor instead of recreating it", () => {
+  const start = source.indexOf("async #randomTrackAction");
+  const randomAction = source.slice(start, source.indexOf("#bindEditor", start));
+  assert.match(randomAction, /new FilePicker\(\{[\s\S]*type: "audio"/);
+  assert.match(randomAction, /this\.trackDraft = cloneData\(\{ \.\.\.this\.trackDraft, sources \}\)/);
+  assert.match(randomAction, /list\.append\(option\)/);
+  assert.doesNotMatch(randomAction, /openRandomTrackEditor/);
+  assert.doesNotMatch(randomAction, /this\.render\(true\)/);
+  assert.doesNotMatch(randomAction, /this\.close\(/);
 });

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeAmbience, validateAmbience } from "../../scripts/data/schema.js";
+import { normalizeAmbience, normalizeTrack, validateAmbience } from "../../scripts/data/schema.js";
 
 test("normalization clamps volume and delay values", () => {
   const ambience = normalizeAmbience({
@@ -12,4 +12,17 @@ test("normalization clamps volume and delay values", () => {
   assert.equal(track.minDelayMs, 2000);
   assert.equal(track.maxDelayMs, 2000);
   assert.deepEqual(validateAmbience(ambience), []);
+});
+
+test("legacy loop tracks migrate to repeating audio tracks", () => {
+  const track = normalizeTrack({ id: "legacy", type: "loop", source: "rain.ogg" }, { idFactory: (prefix) => `${prefix}-id` });
+  assert.equal(track.type, "audio");
+  assert.equal(track.repeat, true);
+  assert.equal(track.source, "rain.ogg");
+});
+
+test("audio tracks can explicitly disable repetition", () => {
+  const track = normalizeTrack({ type: "audio", source: "intro.ogg", repeat: false }, { idFactory: (prefix) => `${prefix}-id` });
+  assert.equal(track.type, "audio");
+  assert.equal(track.repeat, false);
 });
