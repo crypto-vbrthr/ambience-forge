@@ -1,0 +1,12 @@
+{
+  "name": "ambience-forge",
+  "private": true,
+  "version": "0.1.0-alpha.3",
+  "type": "module",
+  "scripts": {
+    "lint": "node tools/validate.mjs",
+    "test": "node --test",
+    "test:coverage": "node --experimental-test-coverage --test",
+    "check": "npm run lint && npm test"
+  }
+}

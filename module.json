@@ -1,0 +1,29 @@
+{
+  "id": "ambience-forge",
+  "title": "Ambience Forge",
+  "description": "A system-agnostic Foundry VTT engine for layered ambience, seamless buffered loops, randomized sound events, sequencing, intensity transitions, and an integration-first public API.",
+  "version": "0.1.0-alpha.3",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.365"
+  },
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "styles": [
+    "styles/ambience-forge.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "de",
+      "name": "Deutsch",
+      "path": "lang/de.json"
+    }
+  ],
+  "socket": true
+}

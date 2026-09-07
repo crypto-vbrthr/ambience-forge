@@ -1,0 +1,19 @@
+.ambience-forge-status {
+  min-width: 360px;
+}
+
+.ambience-forge-status-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(100px, auto);
+  gap: 0.35rem 1rem;
+  margin: 1rem 0 0;
+}
+
+.ambience-forge-status-grid dt {
+  font-weight: 600;
+}
+
+.ambience-forge-status-grid dd {
+  margin: 0;
+  text-align: right;
+}

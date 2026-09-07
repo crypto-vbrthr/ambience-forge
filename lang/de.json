@@ -1,0 +1,15 @@
+{
+  "AMBIENCE_FORGE.Title": "Ambience Forge",
+  "AMBIENCE_FORGE.Common.Close": "Schließen",
+  "AMBIENCE_FORGE.Controls.Title": "Ambience Forge",
+  "AMBIENCE_FORGE.Controls.Status": "Ambience-Forge-Status",
+  "AMBIENCE_FORGE.Controls.StopActive": "Aktive Ambiences stoppen",
+  "AMBIENCE_FORGE.Controls.StopAll": "Gesamte Ambience-Forge-Wiedergabe stoppen",
+  "AMBIENCE_FORGE.Status.Foundation": "Die Audio- und API-Grundlage von Ambience Forge ist aktiv. Der Kompositionseditor und die Szenen-Klangquellen folgen in den nächsten Entwicklungsschritten.",
+  "AMBIENCE_FORGE.Status.ModuleVersion": "Modulversion",
+  "AMBIENCE_FORGE.Status.ApiVersion": "API-Version",
+  "AMBIENCE_FORGE.Status.Compositions": "Kompositionen",
+  "AMBIENCE_FORGE.Status.Active": "Aktive Ambiences",
+  "AMBIENCE_FORGE.Notifications.StoppedAll": "Ambience-Forge-Wiedergabe gestoppt.",
+  "AMBIENCE_FORGE.Console.Ready": "Bereit"
+}
