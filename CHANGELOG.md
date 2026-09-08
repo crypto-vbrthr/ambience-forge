@@ -2,8 +2,20 @@
 
 All notable changes to **Ambience Forge** are documented in this file.
 
-The project is currently in release-candidate testing for 0.1.0. The feature set is frozen until the final 0.1.0 release; release-candidate changes are limited to bug fixes, compatibility fixes, localization corrections, and release hygiene. The public API remains deliberately versioned and compatibility-conscious.
+Ambience Forge 0.1.0 is the first stable release. The public API remains deliberately versioned and compatibility-conscious.
 
+
+
+## [0.1.0] - 2026-09-08
+
+### Release
+- Promoted the manually regression-tested `0.1.0-rc.1` build to the first stable Ambience Forge release.
+- Finalized module and package metadata for `0.1.0`.
+- Public API remains at version `1.0`; data schema remains at version `3`.
+- No functional changes were introduced after the successful release-candidate test.
+
+### Quality
+- Final release requires the complete automated validation and regression suite to pass unchanged from the release candidate.
 
 ## [0.1.0-rc.1] - 2026-09-08
 
