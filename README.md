@@ -88,3 +88,17 @@ Adds the first Random track editor with sound lists, random minimum/maximum paus
 - Start saved compositions without entering the editor.
 - Adjust temporary master volume and Intensity Track values while playback is running.
 - Stop individual or all active compositions from the same compact view.
+
+## Alpha 20
+
+- Adds first-stage Scene Emitters. A saved Ambience composition can be placed spatially on the active Scene with a position, hearing radius, maximum volume, and optional distance falloff.
+- Emitters are backed by silent native Foundry Ambient Sound placeables, keeping Foundry's familiar map handles available while Ambience Forge performs the actual layered Web Audio playback.
+- Spatial playback is evaluated locally for each client using listener token positions.
+- Wall and door attenuation/blocking are planned for the next emitter development step.
+
+## Alpha 22
+
+- Adds small GM-only Ambience Forge emitter markers directly on the map, independent of Foundry's Sound layer visibility.
+- Clicking a marker opens the Ambience Forge emitter editor for that exact source.
+- Hovering a marker exposes quick Edit and Enable/Disable actions.
+- Emitters now keep an explicit enabled state. Disabled emitters remain positioned on the Scene and visibly marked, but produce no playback.

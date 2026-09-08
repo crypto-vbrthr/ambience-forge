@@ -206,3 +206,94 @@
   width: auto;
   white-space: nowrap;
 }
+
+.ambience-forge-emitter-manager,
+.ambience-forge-emitter-editor {
+  min-width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ambience-forge-emitter-window .window-content {
+  overflow-y: auto;
+}
+
+.ambience-forge-emitter-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 69;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambience-forge-emitter-marker {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+  pointer-events: auto;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 65%));
+}
+
+.ambience-forge-emitter-marker > button,
+.ambience-forge-emitter-marker-actions > button {
+  width: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  margin: 0;
+}
+
+.ambience-forge-emitter-marker-main {
+  width: 2rem !important;
+  min-width: 2rem !important;
+  height: 2rem !important;
+  min-height: 2rem !important;
+}
+
+.ambience-forge-emitter-marker[data-enabled="false"] .ambience-forge-emitter-marker-main {
+  opacity: 0.55;
+}
+
+.ambience-forge-emitter-marker-actions {
+  display: flex;
+  gap: 0.18rem;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-0.3rem);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.ambience-forge-emitter-marker:hover .ambience-forge-emitter-marker-actions,
+.ambience-forge-emitter-marker:focus-within .ambience-forge-emitter-marker-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.ambience-forge-emitter-marker-label {
+  max-width: 14rem;
+  padding: 0.14rem 0.35rem;
+  border-radius: 3px;
+  background: rgb(0 0 0 / 72%);
+  color: white;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.ambience-forge-emitter-marker:hover .ambience-forge-emitter-marker-label,
+.ambience-forge-emitter-marker:focus-within .ambience-forge-emitter-marker-label {
+  opacity: 1;
+}

@@ -6,6 +6,45 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## [0.1.0-alpha.22] - 2026-09-08
+
+### Added
+- GM-only map markers for Ambience Forge scene emitters, visible independently of Foundry's Sound layer.
+- Direct map access to the Ambience Forge emitter editor.
+- Hover controls on map markers to edit or enable/disable an emitter.
+- Persistent enabled/disabled state for scene emitters. Disabled emitters remain placed but produce no playback.
+- `setSceneEmitterEnabled()` public API method and `scene-emitter-markers-v1` capability.
+
+### Changed
+- Scene emitter flag schema increased to version 2. Existing emitters default to enabled.
+- Scene emitter editor now exposes an Enabled checkbox.
+
+## [0.1.0-alpha.21] - 2026-09-08
+
+### Fixed
+- Scene Emitters now react immediately to Token creation, movement, deletion, and control changes.
+- A freshly placed Token is remembered as the GM listener position even if Foundry does not leave it selected after creation.
+- When no Token is selected, GM preview falls back to player-owned Tokens, or to the only visible Token when the Scene contains exactly one.
+- Spatial ambience therefore starts correctly when a Token is placed inside an emitter radius.
+
+### Changed
+- Scene Emitter help text now explains which Token Ambience Forge uses as the GM listener position.
+
+## [0.1.0-alpha.20] - 2026-09-08
+
+### Added
+- First-stage **Scene Emitters** for spatial ambience playback.
+- Place any saved Ambience composition at a Scene position with configurable radius, maximum volume, and distance falloff.
+- Scene Emitter Manager with create/edit/delete, map focus, position picking, and local preview.
+- Scene emitters use Foundry Ambient Sound documents as silent native position/radius proxies, so they can also be moved with Foundry's Sound layer.
+- Client-local spatial playback follows controlled/owned token listener positions and continuously adjusts composition master volume by distance.
+- Public API methods for listing, creating, updating, deleting, and previewing Scene Emitters.
+- `scene-emitters-v1` API capability.
+- Automated tests for radius conversion, attenuation, runtime start/stop, and emitter UI/API contracts.
+
+### Notes
+- This first emitter slice implements position, radius, distance falloff, movement, and preview. Wall/door attenuation and blocking are intentionally deferred to the next emitter step.
+
 ## [0.1.0-alpha.19] - 2026-09-07
 
 ### Changed

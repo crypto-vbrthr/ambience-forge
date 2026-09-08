@@ -1,0 +1,356 @@
+import { MODULE_ID } from "../constants.js";
+import { AmbienceRuntime } from "../core/ambience-runtime.js";
+import { RandomScheduler } from "../core/random-scheduler.js";
+import { cloneData } from "../data/schema.js";
+import {
+  EMITTER_FLAG,
+  EMITTER_SCHEMA_VERSION,
+  SILENCE_PATH,
+  computeEmitterGain,
+  emitterDataFromDocument,
+  getEmitterFlag,
+  isAmbienceEmitter,
+  normalizeEmitterData
+} from "./emitter-model.js";
+
+function tokenListenerPosition(token) {
+  try {
+    const position = token?.document?.getListenerPosition?.();
+    if (position && Number.isFinite(position.x) && Number.isFinite(position.y)) return position;
+  } catch {}
+  if (token?.center && Number.isFinite(token.center.x) && Number.isFinite(token.center.y)) return token.center;
+  const width = Number(token?.w ?? token?.width ?? 0) || 0;
+  const height = Number(token?.h ?? token?.height ?? 0) || 0;
+  return {
+    x: (Number(token?.x) || 0) + (width / 2),
+    y: (Number(token?.y) || 0) + (height / 2)
+  };
+}
+
+function defaultListeners(preferredTokenId = null) {
+  const controlled = globalThis.canvas?.tokens?.controlled ?? [];
+  if (controlled.length) return controlled.map(tokenListenerPosition);
+
+  const placeables = (globalThis.canvas?.tokens?.placeables ?? [])
+    .filter((token) => token?.document?.hidden !== true);
+
+  if (globalThis.game?.user?.isGM) {
+    // A GM normally previews spatial ambience through a deliberately selected token.
+    // Keep following the most recently created/controlled token even after Foundry
+    // clears its control state (for example directly after Actor -> Canvas creation).
+    if (preferredTokenId) {
+      const preferred = placeables.find((token) => (token?.id ?? token?.document?.id) === preferredTokenId);
+      if (preferred) return [tokenListenerPosition(preferred)];
+    }
+
+    // If player-owned tokens exist, let the GM hear what the players would hear.
+    const playerOwned = placeables.filter((token) => token?.actor?.hasPlayerOwner === true);
+    if (playerOwned.length) return playerOwned.map(tokenListenerPosition);
+
+    // A single token is unambiguous and makes quick emitter testing intuitive.
+    if (placeables.length === 1) return [tokenListenerPosition(placeables[0])];
+    return [];
+  }
+
+  const owned = placeables.filter((token) => token?.actor?.isOwner);
+  return owned.map(tokenListenerPosition);
+}
+
+function sceneSounds(scene) {
+  const collection = scene?.sounds ?? scene?.ambientSounds ?? [];
+  if (Array.isArray(collection)) return collection;
+  if (typeof collection?.values === "function") return [...collection.values()];
+  if (collection?.contents) return collection.contents;
+  return [];
+}
+
+export class SceneEmitterService {
+  constructor({
+    getAmbienceService,
+    backend,
+    schedulerFactory = () => new RandomScheduler(),
+    getListeners = null,
+    setIntervalFn = globalThis.setInterval?.bind(globalThis),
+    clearIntervalFn = globalThis.clearInterval?.bind(globalThis),
+    tickMs = 200
+  } = {}) {
+    this.getAmbienceService = getAmbienceService;
+    this.backend = backend;
+    this.schedulerFactory = schedulerFactory;
+    this.getListeners = getListeners;
+    this.preferredListenerTokenId = null;
+    this.setIntervalFn = setIntervalFn;
+    this.clearIntervalFn = clearIntervalFn;
+    this.tickMs = tickMs;
+    this.scene = null;
+    this.runtimes = new Map();
+    this.timer = null;
+    this.previewRuntime = null;
+  }
+
+
+  setPreferredListenerToken(tokenOrId) {
+    const id = typeof tokenOrId === "string"
+      ? tokenOrId
+      : (tokenOrId?.id ?? tokenOrId?.document?.id ?? null);
+    this.preferredListenerTokenId = id ? String(id) : null;
+  }
+
+  clearPreferredListenerToken(id = null) {
+    if (id && this.preferredListenerTokenId !== String(id)) return;
+    this.preferredListenerTokenId = null;
+  }
+
+  async activateScene(scene, { monitor = true } = {}) {
+    await this.deactivateScene();
+    this.scene = scene ?? null;
+    if (monitor && this.scene && this.setIntervalFn) {
+      this.timer = this.setIntervalFn(() => { void this.tick(); }, this.tickMs);
+    }
+    return this.tick();
+  }
+
+  async deactivateScene() {
+    if (this.timer != null && this.clearIntervalFn) this.clearIntervalFn(this.timer);
+    this.timer = null;
+    const runtimes = [...this.runtimes.values()].map((entry) => entry.runtime);
+    this.runtimes.clear();
+    await Promise.all(runtimes.map((runtime) => runtime.stop()));
+    await this.stopPreview();
+    this.scene = null;
+  }
+
+  getEmitters(scene = this.scene ?? globalThis.canvas?.scene) {
+    return sceneSounds(scene)
+      .filter(isAmbienceEmitter)
+      .map(emitterDataFromDocument)
+      .filter(Boolean)
+      .map(cloneData);
+  }
+
+  getEmitter(id, scene = this.scene ?? globalThis.canvas?.scene) {
+    return this.getEmitters(scene).find((emitter) => emitter.id === id) ?? null;
+  }
+
+  #document(id, scene = this.scene ?? globalThis.canvas?.scene) {
+    const sounds = scene?.sounds ?? scene?.ambientSounds;
+    return sounds?.get?.(id) ?? sceneSounds(scene).find((doc) => (doc.id ?? doc._id) === id) ?? null;
+  }
+
+  async createEmitter(input, scene = globalThis.canvas?.scene) {
+    if (!globalThis.game?.user?.isGM) throw new Error("Ambience Forge scene emitters can only be created by a GM");
+    if (!scene?.createEmbeddedDocuments) throw new Error("No active Scene is available for Ambience Forge emitter creation");
+    const emitter = normalizeEmitterData(input);
+    if (!emitter.ambienceId) throw new Error("Ambience Forge emitter ambienceId is required");
+    const ambience = this.getAmbienceService()?.getAmbience(emitter.ambienceId);
+    if (!ambience) throw new Error(`Unknown Ambience Forge ambience: ${emitter.ambienceId}`);
+    const [document] = await scene.createEmbeddedDocuments("AmbientSound", [{
+      x: emitter.x,
+      y: emitter.y,
+      radius: emitter.radius,
+      volume: emitter.volume,
+      easing: emitter.easing,
+      walls: false,
+      path: SILENCE_PATH,
+      flags: {
+        [MODULE_ID]: {
+          [EMITTER_FLAG]: {
+            schemaVersion: EMITTER_SCHEMA_VERSION,
+            ambienceId: emitter.ambienceId,
+            name: emitter.name || ambience.name
+          }
+        }
+      }
+    }]);
+    await this.tick();
+    return emitterDataFromDocument(document);
+  }
+
+  async updateEmitter(id, input, scene = globalThis.canvas?.scene) {
+    if (!globalThis.game?.user?.isGM) throw new Error("Ambience Forge scene emitters can only be updated by a GM");
+    const document = this.#document(id, scene);
+    if (!document) return null;
+    const current = emitterDataFromDocument(document);
+    const emitter = normalizeEmitterData({ ...current, ...input, id });
+    if (!emitter.ambienceId) throw new Error("Ambience Forge emitter ambienceId is required");
+    const ambience = this.getAmbienceService()?.getAmbience(emitter.ambienceId);
+    if (!ambience) throw new Error(`Unknown Ambience Forge ambience: ${emitter.ambienceId}`);
+    await document.update({
+      x: emitter.x,
+      y: emitter.y,
+      radius: emitter.radius,
+      volume: emitter.volume,
+      easing: emitter.easing,
+      walls: false,
+      path: SILENCE_PATH,
+      [`flags.${MODULE_ID}.${EMITTER_FLAG}`]: {
+        schemaVersion: EMITTER_SCHEMA_VERSION,
+        ambienceId: emitter.ambienceId,
+        name: emitter.name || ambience.name
+      }
+    });
+    await this.#restartEmitter(id);
+    await this.tick();
+    return this.getEmitter(id, scene);
+  }
+
+  async deleteEmitter(id, scene = globalThis.canvas?.scene) {
+    if (!globalThis.game?.user?.isGM) throw new Error("Ambience Forge scene emitters can only be deleted by a GM");
+    const entry = this.runtimes.get(id);
+    if (entry) {
+      await entry.runtime.stop();
+      this.runtimes.delete(id);
+    }
+    if (scene?.deleteEmbeddedDocuments) await scene.deleteEmbeddedDocuments("AmbientSound", [id]);
+    return true;
+  }
+
+  async previewEmitter(id, scene = this.scene ?? globalThis.canvas?.scene) {
+    const emitter = this.getEmitter(id, scene);
+    if (!emitter) return false;
+    const ambience = this.getAmbienceService()?.getAmbience(emitter.ambienceId);
+    if (!ambience) return false;
+    await this.stopPreview();
+    const preview = cloneData(ambience);
+    preview.masterVolume = (ambience.masterVolume ?? 1) * emitter.volume;
+    this.previewRuntime = new AmbienceRuntime({
+      ambience: preview,
+      backend: this.backend,
+      schedulerFactory: this.schedulerFactory
+    });
+    await this.previewRuntime.start();
+    return true;
+  }
+
+  async stopPreview() {
+    if (!this.previewRuntime) return false;
+    const runtime = this.previewRuntime;
+    this.previewRuntime = null;
+    await runtime.stop();
+    return true;
+  }
+
+  async tick() {
+    const scene = this.scene ?? globalThis.canvas?.scene;
+    if (!scene) return;
+    const ambienceService = this.getAmbienceService?.();
+    if (!ambienceService) return;
+    const listeners = this.getListeners
+      ? (this.getListeners() ?? [])
+      : defaultListeners(this.preferredListenerTokenId);
+    const documents = sceneSounds(scene).filter(isAmbienceEmitter);
+    const present = new Set(documents.map((doc) => doc.id ?? doc._id));
+
+    for (const [id, entry] of [...this.runtimes.entries()]) {
+      if (!present.has(id)) {
+        await entry.runtime.stop();
+        this.runtimes.delete(id);
+      }
+    }
+
+    for (const document of documents) {
+      const emitter = emitterDataFromDocument(document);
+      if (!emitter) continue;
+      const ambience = ambienceService.getAmbience(emitter.ambienceId);
+      if (!ambience) {
+        await this.#stopEmitter(emitter.id);
+        continue;
+      }
+      let gain = 0;
+      for (const listener of listeners) {
+        gain = Math.max(gain, computeEmitterGain({ emitter, listener, scene }));
+      }
+      const effectiveMaster = (ambience.masterVolume ?? 1) * gain;
+      if (effectiveMaster <= 0.0001) {
+        await this.#stopEmitter(emitter.id);
+        continue;
+      }
+      let entry = this.runtimes.get(emitter.id);
+      if (!entry || entry.ambienceId !== emitter.ambienceId) {
+        if (entry) await entry.runtime.stop();
+        const runtimeAmbience = cloneData(ambience);
+        runtimeAmbience.masterVolume = effectiveMaster;
+        const runtime = new AmbienceRuntime({
+          ambience: runtimeAmbience,
+          backend: this.backend,
+          schedulerFactory: this.schedulerFactory
+        });
+        entry = { ambienceId: emitter.ambienceId, runtime };
+        this.runtimes.set(emitter.id, entry);
+        await runtime.start();
+      } else {
+        await entry.runtime.setMasterVolume(effectiveMaster, { durationMs: this.tickMs });
+      }
+    }
+  }
+
+  async #stopEmitter(id) {
+    const entry = this.runtimes.get(id);
+    if (!entry) return;
+    this.runtimes.delete(id);
+    await entry.runtime.stop();
+  }
+
+  async #restartEmitter(id) {
+    await this.#stopEmitter(id);
+  }
+
+  enforceProxyPath(document, changes) {
+    if (!isAmbienceEmitter(document)) return;
+    if ("path" in changes && changes.path !== SILENCE_PATH) changes.path = SILENCE_PATH;
+    if ("walls" in changes && changes.walls !== false) changes.walls = false;
+  }
+}
+
+export function registerEmitterHooks(getEmitterService) {
+  Hooks.on("canvasReady", (canvasInstance) => {
+    const service = getEmitterService();
+    if (!service) return;
+    const scene = canvasInstance?.scene ?? globalThis.canvas?.scene;
+    void service.activateScene(scene);
+  });
+
+  Hooks.on("canvasTearDown", () => {
+    const service = getEmitterService();
+    if (service) void service.deactivateScene();
+  });
+
+  Hooks.on("preUpdateAmbientSound", (document, changes) => {
+    getEmitterService()?.enforceProxyPath(document, changes);
+  });
+
+  for (const hook of ["createAmbientSound", "updateAmbientSound", "deleteAmbientSound"]) {
+    Hooks.on(hook, () => {
+      const service = getEmitterService();
+      if (service) void service.tick();
+    });
+  }
+
+  Hooks.on("controlToken", (token, controlled) => {
+    const service = getEmitterService();
+    if (!service) return;
+    if (controlled && globalThis.game?.user?.isGM) service.setPreferredListenerToken(token);
+    void service.tick();
+  });
+
+  Hooks.on("createToken", (document) => {
+    const service = getEmitterService();
+    if (!service) return;
+    // Token creation is a natural GM preview action. Foundry does not guarantee
+    // that a freshly placed Token remains in canvas.tokens.controlled.
+    if (globalThis.game?.user?.isGM) service.setPreferredListenerToken(document?.id ?? document?._id);
+    void service.tick();
+  });
+
+  Hooks.on("updateToken", () => {
+    const service = getEmitterService();
+    if (service) void service.tick();
+  });
+
+  Hooks.on("deleteToken", (document) => {
+    const service = getEmitterService();
+    if (!service) return;
+    service.clearPreferredListenerToken(document?.id ?? document?._id);
+    void service.tick();
+  });
+}

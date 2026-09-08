@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const source = fs.readFileSync(new URL("../scripts/ui/quick-control-alpha19.js", import.meta.url), "utf8");
-const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha19.js", import.meta.url), "utf8");
+const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha20.js", import.meta.url), "utf8");
 
 test("Quick Control is a persistent ApplicationV2 and is exposed in Scene Controls", () => {
   assert.match(source, /const ApplicationV2 = foundry\.applications\.api\.ApplicationV2/);

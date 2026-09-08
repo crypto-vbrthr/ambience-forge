@@ -1,10 +1,16 @@
 import { API_VERSION } from "../constants.js";
 import { COMMANDS, executeSynchronized } from "../socket.js";
 
-export function createPublicApi({ getService, getModuleVersion }) {
+export function createPublicApi({ getService, getEmitterService = () => null, getModuleVersion }) {
   const service = () => {
     const value = getService();
     if (!value) throw new Error("Ambience Forge is not ready yet");
+    return value;
+  };
+
+  const emitterService = () => {
+    const value = getEmitterService();
+    if (!value) throw new Error("Ambience Forge scene emitters are not ready yet");
     return value;
   };
 
@@ -22,7 +28,9 @@ export function createPublicApi({ getService, getModuleVersion }) {
       "sequence-preview-v1",
       "intensity-preview-v1",
       "master-volume-v1",
-      "track-live-control-v1"
+      "track-live-control-v1",
+      "scene-emitters-v1",
+      "scene-emitter-markers-v1"
     ]),
 
     isReady: () => Boolean(getService()),
@@ -91,6 +99,15 @@ export function createPublicApi({ getService, getModuleVersion }) {
     previewIntensity: (track) => service().previewIntensity(track),
     setPreviewIntensity: (intensity) => service().setPreviewIntensity(intensity),
     stopPreview: () => service().stopPreview(),
+
+    getSceneEmitters: () => emitterService().getEmitters(),
+    getSceneEmitter: (id) => emitterService().getEmitter(id),
+    createSceneEmitter: (data) => emitterService().createEmitter(data),
+    updateSceneEmitter: (id, data) => emitterService().updateEmitter(id, data),
+    setSceneEmitterEnabled: (id, enabled) => emitterService().setEmitterEnabled(id, enabled),
+    deleteSceneEmitter: (id) => emitterService().deleteEmitter(id),
+    previewSceneEmitter: (id) => emitterService().previewEmitter(id),
+    stopSceneEmitterPreview: () => emitterService().stopPreview(),
 
     stopAll: (options = {}) => executeSynchronized(service(), {
       command: COMMANDS.STOP_ALL
