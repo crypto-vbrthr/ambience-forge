@@ -202,5 +202,6 @@
   "AMBIENCE_FORGE.TrackType.audio": "Audio",
   "AMBIENCE_FORGE.TrackType.intensity": "Intensity",
   "AMBIENCE_FORGE.TrackType.random": "Random",
-  "AMBIENCE_FORGE.TrackType.sequence": "Sequence"
+  "AMBIENCE_FORGE.TrackType.sequence": "Sequence",
+  "AMBIENCE_FORGE.Emitter.MarkerMain": "{name}: Click to edit, drag with the left mouse button to move"
 }

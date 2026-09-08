@@ -297,3 +297,22 @@
 .ambience-forge-emitter-marker:focus-within .ambience-forge-emitter-marker-label {
   opacity: 1;
 }
+
+.ambience-forge-emitter-marker-main {
+  cursor: grab;
+  touch-action: none;
+}
+
+.ambience-forge-emitter-marker[data-dragging="true"] {
+  z-index: 2;
+}
+
+.ambience-forge-emitter-marker[data-dragging="true"] .ambience-forge-emitter-marker-main {
+  cursor: grabbing;
+}
+
+.ambience-forge-emitter-marker[data-dragging="true"] .ambience-forge-emitter-marker-actions,
+.ambience-forge-emitter-marker[data-dragging="true"] .ambience-forge-emitter-marker-label {
+  opacity: 0;
+  pointer-events: none;
+}

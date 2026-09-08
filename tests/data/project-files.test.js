@@ -10,5 +10,5 @@ test("distribution includes license and changelog", () => {
   const license = fs.readFileSync(path.join(root, "LICENSE"), "utf8");
   const changelog = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
   assert.match(license, /MIT License/);
-  assert.match(changelog, /0\.1\.0-alpha\.22/);
+  assert.match(changelog, /0\.1\.0-alpha\.23/);
 });

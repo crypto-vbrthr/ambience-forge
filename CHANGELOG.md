@@ -6,6 +6,16 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## [0.1.0-alpha.23] - 2026-09-08
+
+### Added
+- Scene emitter map markers can now be repositioned directly with the left mouse button.
+- Dragging provides live marker feedback and persists the new Scene coordinates on release.
+- A short movement threshold preserves normal click-to-edit behavior.
+
+### Changed
+- The main emitter marker tooltip now explains click-to-edit and drag-to-move behavior.
+
 ## [0.1.0-alpha.22] - 2026-09-08
 
 ### Added

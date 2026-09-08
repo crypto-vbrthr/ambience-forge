@@ -5,6 +5,7 @@ import fs from "node:fs";
 const manager = fs.readFileSync(new URL("../scripts/ui/emitter-manager-alpha22.js", import.meta.url), "utf8");
 const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha22.js", import.meta.url), "utf8");
 const service = fs.readFileSync(new URL("../scripts/scene/scene-emitter-service-alpha22.js", import.meta.url), "utf8");
+const overlay = fs.readFileSync(new URL("../scripts/ui/emitter-overlay-alpha23.js", import.meta.url), "utf8");
 
 test("Scene Controls expose the Scene Emitter manager", () => {
   assert.match(controls, /emitter-manager-alpha22\.js/);
@@ -26,4 +27,17 @@ test("Scene emitters use Foundry AmbientSound documents as silent spatial proxie
   assert.match(service, /radius: emitter\.radius/);
   assert.match(service, /easing: emitter\.easing/);
   assert.match(service, /walls: false/);
+});
+
+
+test("Emitter overlay supports direct left-button dragging without losing click-to-edit", () => {
+  assert.match(overlay, /marker\.addEventListener\("pointerdown"/);
+  assert.match(overlay, /event\.button !== 0/);
+  assert.match(overlay, /clientToScene/);
+  assert.match(overlay, /worldTransform/);
+  assert.match(overlay, /applyInverse/);
+  assert.match(overlay, /Math\.hypot/);
+  assert.match(overlay, /distance < 4/);
+  assert.match(overlay, /updateSceneEmitter\(drag\.emitterId, \{ x: drag\.x, y: drag\.y \}\)/);
+  assert.match(overlay, /suppressClick/);
 });
