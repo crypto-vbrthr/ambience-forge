@@ -31,7 +31,8 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
       "track-live-control-v1",
       "scene-emitters-v1",
       "scene-emitter-markers-v1",
-      "scene-emitter-obstruction-v1"
+      "scene-emitter-obstruction-v1",
+      "import-export-v1"
     ]),
 
     isReady: () => Boolean(getService()),
@@ -41,6 +42,8 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
     getState: () => service().getState(),
     upsertAmbience: (ambience) => service().upsertAmbience(ambience),
     deleteAmbience: (id) => service().deleteAmbience(id),
+    exportAmbience: (id) => service().exportAmbience(id),
+    importAmbience: (envelope) => service().importAmbience(envelope),
 
     playAmbience: (ambienceId, options = {}) => executeSynchronized(service(), {
       command: COMMANDS.PLAY,

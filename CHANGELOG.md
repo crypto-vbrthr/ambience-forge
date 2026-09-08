@@ -6,6 +6,23 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## [0.1.0-alpha.30] - 2026-09-08
+
+### Fixed
+- JSON export now uses Foundry V14's public `foundry.utils.saveDataToFile()` API instead of a browser `blob:` URL. This prevents the Foundry desktop client / Windows from handing the generated `blob:` link to the operating system as an external protocol.
+- Export continues to produce the same portable `.ambience-forge.json` payload; only the download transport changed.
+
+## [0.1.0-alpha.29] - 2026-09-08
+
+### Added
+- Ambience Manager actions for exporting a selected composition to a portable JSON file and importing a JSON composition from the local computer.
+- Public `exportAmbience()` and `importAmbience()` API methods plus the `import-export-v1` capability.
+- Audio-source collection helper for import/export diagnostics and future missing-file checks.
+
+### Changed
+- Imported compositions always receive fresh Ambience, Track, and Intensity Variant IDs, preventing cross-world ID collisions and allowing the same composition to be imported multiple times safely.
+- Import validation now rejects wrong formats, future schema versions, missing payloads, and malformed compositions before persistence.
+
 ## [0.1.0-alpha.28] - 2026-09-08
 
 ### Changed

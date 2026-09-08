@@ -3,6 +3,7 @@ import { OwnerRegistry } from "./owner-registry.js";
 import { TRACK_TYPES } from "../constants.js";
 import { chooseIndex } from "./random.js";
 import { cloneData, normalizeAmbience, normalizeTrack, validateAmbience } from "../data/schema.js";
+import { exportAmbienceEnvelope, importAmbienceEnvelope } from "../data/export-import.js";
 
 export class AmbienceService {
   constructor({ store, backend, schedulerFactory, moduleVersion = "0.0.0", random = Math.random }) {
@@ -62,6 +63,17 @@ export class AmbienceService {
     this.ambiences.delete(id);
     this.owners.clear(id);
     await this.#persist();
+  }
+
+  exportAmbience(id) {
+    const ambience = this.ambiences.get(id);
+    if (!ambience) throw new Error(`Unknown Ambience Forge ambience: ${id}`);
+    return exportAmbienceEnvelope(ambience, this.moduleVersion);
+  }
+
+  async importAmbience(envelope) {
+    const ambience = importAmbienceEnvelope(envelope);
+    return this.upsertAmbience(ambience);
   }
 
   async playAmbience(id) {
