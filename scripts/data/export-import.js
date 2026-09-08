@@ -17,13 +17,41 @@ export function importAmbienceEnvelope(envelope, { idFactory = createId } = {}) 
 
   const imported = normalizeAmbience(envelope.ambience, { idFactory });
   imported.id = idFactory("ambience");
-  imported.tracks = imported.tracks.map((track) => ({
-    ...track,
-    id: idFactory("track"),
-    ...(track.variants
-      ? { variants: track.variants.map((variant) => ({ ...variant, id: idFactory("variant") })) }
-      : {})
-  }));
+
+  const trackIdMap = new Map();
+  imported.tracks = imported.tracks.map((track) => {
+    const oldId = track.id;
+    const newId = idFactory("track");
+    trackIdMap.set(oldId, newId);
+    return {
+      ...track,
+      id: newId,
+      ...(track.variants
+        ? { variants: track.variants.map((variant) => ({ ...variant, id: idFactory("variant") })) }
+        : {})
+    };
+  });
+
+  imported.stateGroups = (imported.stateGroups ?? []).map((group) => {
+    const stateIdMap = new Map();
+    const states = (group.states ?? []).map((state) => {
+      const newId = idFactory("state");
+      stateIdMap.set(state.id, newId);
+      return {
+        ...state,
+        id: newId,
+        trackOverrides: (state.trackOverrides ?? [])
+          .map((override) => ({ ...override, trackId: trackIdMap.get(override.trackId) ?? null }))
+          .filter((override) => Boolean(override.trackId))
+      };
+    });
+    return {
+      ...group,
+      id: idFactory("state-group"),
+      defaultStateId: group.defaultStateId ? (stateIdMap.get(group.defaultStateId) ?? null) : null,
+      states
+    };
+  });
 
   const errors = validateAmbience(imported);
   if (errors.length) throw new Error(`Invalid Ambience Forge import: ${errors.join(", ")}`);

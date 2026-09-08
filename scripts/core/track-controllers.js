@@ -15,12 +15,12 @@ class BaseTrackController {
     this.running = true;
   }
 
-  async stop() {
+  async stop({ fadeOutMs = this.track.fadeOutMs } = {}) {
     this.running = false;
     this.scheduler?.cancelAll?.();
     const handles = [...this.handles];
     this.handles.clear();
-    await Promise.all(handles.map((handle) => this.backend.stop(handle, { fadeOutMs: this.track.fadeOutMs })));
+    await Promise.all(handles.map((handle) => this.backend.stop(handle, { fadeOutMs })));
   }
 
   get effectiveVolume() {
@@ -52,7 +52,7 @@ class BaseTrackController {
 }
 
 export class AudioTrackController extends BaseTrackController {
-  async start() {
+  async start({ fadeInMs = this.track.fadeInMs } = {}) {
     if (this.running) return;
     await super.start();
     if (!this.track.source) return;
@@ -60,14 +60,14 @@ export class AudioTrackController extends BaseTrackController {
       ? await this.backend.startLoop({
           src: this.track.source,
           volume: this.effectiveVolume,
-          fadeInMs: this.track.fadeInMs,
+          fadeInMs,
           loopStart: this.track.loopStart,
           loopEnd: this.track.loopEnd
         })
       : await this.backend.playOneShot({
           src: this.track.source,
           volume: this.effectiveVolume,
-          fadeInMs: this.track.fadeInMs
+          fadeInMs
         });
     if (!this.running) return this.discardHandle(handle);
     this.rememberHandle(handle);
@@ -87,10 +87,10 @@ export class RandomTrackController extends BaseTrackController {
     this.#scheduleNext();
   }
 
-  async stop() {
+  async stop(options = {}) {
     if (this.timer != null) this.scheduler.cancel(this.timer);
     this.timer = null;
-    await super.stop();
+    await super.stop(options);
   }
 
   #scheduleNext(extraDelay = 0) {
@@ -130,10 +130,10 @@ export class SequenceTrackController extends BaseTrackController {
     this.#scheduleNext(0, true);
   }
 
-  async stop() {
+  async stop(options = {}) {
     if (this.timer != null) this.scheduler.cancel(this.timer);
     this.timer = null;
-    await super.stop();
+    await super.stop(options);
   }
 
   #nextIndex() {
@@ -178,7 +178,7 @@ export class IntensityTrackController extends BaseTrackController {
     return Math.min(this.track.variants.length - 1, Math.round(intensity * (this.track.variants.length - 1)));
   }
 
-  async start() {
+  async start({ fadeInMs = this.track.fadeInMs } = {}) {
     if (this.running) return;
     await super.start();
     const index = this.#indexForIntensity(this.track.intensity);
@@ -187,16 +187,16 @@ export class IntensityTrackController extends BaseTrackController {
     const handle = await this.backend.startLoop({
       src: this.track.variants[index].source,
       volume: this.effectiveVolume,
-      fadeInMs: this.track.fadeInMs
+      fadeInMs
     });
     if (!this.running) return this.discardHandle(handle);
     this.handle = this.rememberHandle(handle);
   }
 
-  async stop() {
+  async stop(options = {}) {
     this.handle = null;
     this.variantIndex = -1;
-    await super.stop();
+    await super.stop(options);
   }
 
   async setIntensity(intensity) {

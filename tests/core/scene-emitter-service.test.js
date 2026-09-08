@@ -327,3 +327,43 @@ test("scene emitter definition changes bypass a previous playback backoff", asyn
   assert.equal(service.runtimes.size, 1);
   assert.equal(service.failures.has("e1"), false);
 });
+
+test("scene emitter applies changed ambience states without restarting the whole emitter", async () => {
+  const backend = new FakeAudioBackend();
+  let stateRevision = 0;
+  let desired = {};
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    tracks: [
+      { id: "wind", name: "Wind", type: "audio", source: "wind.ogg", repeat: true, volume: 0.5 },
+      { id: "rain", name: "Rain", type: "audio", source: "rain.ogg", repeat: true, volume: 0.8, enabled: false }
+    ],
+    stateGroups: [{
+      id: "weather-group", key: "weather", name: "Weather", transitionMs: 1200,
+      states: [{ id: "storm-state", key: "storm", name: "Storm", trackOverrides: [{ trackId: "rain", active: "on" }] }]
+    }]
+  });
+  const ambienceService = {
+    getAmbience: () => structuredClone(ambience),
+    getAmbienceRevision: () => 1,
+    getAmbienceStateRevision: () => stateRevision,
+    getDesiredStateSelections: () => structuredClone(desired)
+  };
+  const scene = { grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  assert.equal(backend.events.filter((event) => event.type === "startLoop" && event.options.src === "rain.ogg").length, 0);
+  desired = { weather: "storm" };
+  stateRevision = 1;
+  await service.tick();
+  assert.equal(backend.events.filter((event) => event.type === "startLoop" && event.options.src === "rain.ogg").length, 1);
+  assert.equal(service.runtimes.get("e1")?.stateRevision, 1);
+});

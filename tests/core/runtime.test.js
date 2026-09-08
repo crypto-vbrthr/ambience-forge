@@ -244,3 +244,53 @@ test("failed live track restart is rolled back so a later retry remains possible
   assert.equal(controller.running, true);
   await runtime.stop();
 });
+
+test("default states can activate initially disabled tracks", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    name: "Rainy Forest",
+    tracks: [
+      { id: "forest", name: "Forest", type: "audio", source: "forest.ogg", repeat: true, volume: 0.5 },
+      { id: "rain", name: "Rain", type: "audio", source: "rain.ogg", repeat: true, volume: 0.8, enabled: false }
+    ],
+    stateGroups: [{
+      id: "weather", key: "weather", name: "Weather", defaultStateId: "rain-state", transitionMs: 2000,
+      states: [{ id: "rain-state", key: "rain", name: "Rain", trackOverrides: [{ trackId: "rain", active: "on", volumeFactor: 0.5 }] }]
+    }]
+  });
+  const runtime = new AmbienceRuntime({ ambience, backend });
+  await runtime.start();
+  const starts = backend.events.filter((event) => event.type === "startLoop");
+  assert.deepEqual(starts.map((event) => event.options.src).sort(), ["forest.ogg", "rain.ogg"]);
+  assert.equal(starts.find((event) => event.options.src === "rain.ogg").options.volume, 0.4);
+});
+
+test("switching states changes volume and activation with the state transition", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    name: "Forest",
+    tracks: [
+      { id: "owl", name: "Owl", type: "audio", source: "owl.ogg", repeat: true, volume: 0.6 },
+      { id: "rain", name: "Rain", type: "audio", source: "rain.ogg", repeat: true, volume: 0.8, enabled: false }
+    ],
+    stateGroups: [{
+      id: "weather", key: "weather", name: "Weather", transitionMs: 4500,
+      states: [
+        { id: "dry", key: "dry", name: "Dry", trackOverrides: [] },
+        { id: "storm", key: "storm", name: "Storm", trackOverrides: [
+          { trackId: "owl", active: "off", volumeFactor: 0.5 },
+          { trackId: "rain", active: "on", volumeFactor: 1 }
+        ] }
+      ]
+    }]
+  });
+  const runtime = new AmbienceRuntime({ ambience, backend, stateSelections: { weather: "dry" } });
+  await runtime.start();
+  await runtime.setState("weather", "storm");
+  assert.equal(runtime.getTrackActiveStates().owl, false);
+  assert.equal(runtime.getTrackActiveStates().rain, true);
+  const owlStop = backend.events.find((event) => event.type === "stop" && event.handle.src === "owl.ogg");
+  const rainStart = backend.events.find((event) => event.type === "startLoop" && event.options.src === "rain.ogg");
+  assert.equal(owlStop.options.fadeOutMs, 4500);
+  assert.equal(rainStart.options.fadeInMs, 4500);
+});

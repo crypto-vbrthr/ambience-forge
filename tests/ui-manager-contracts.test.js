@@ -104,3 +104,9 @@ test("intensity track editor and live runtime controls are exposed", () => {
   assert.match(source, /data-af-live-intensity-track/);
   assert.match(source, /this\.api\.setTrackIntensity/);
 });
+
+test("ambience editor exposes the state manager as a focused composition tool", () => {
+  assert.match(source, /openStateManager/);
+  assert.match(source, /editorActionButton\("states"/);
+  assert.match(source, /action === "states"/);
+});

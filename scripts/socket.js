@@ -9,6 +9,8 @@ export const COMMANDS = Object.freeze({
   TRACK_VOLUME: "track-volume",
   TRACK_ACTIVE: "track-active",
   TRACK_INTENSITY: "track-intensity",
+  STATE: "state",
+  CLEAR_STATE: "clear-state",
   STOP_ALL: "stop-all"
 });
 
@@ -44,6 +46,12 @@ export async function executeCommand(service, message) {
       return service.setTrackActive(message.ambienceId, message.trackId, message.active);
     case COMMANDS.TRACK_INTENSITY:
       return service.setTrackIntensity(message.ambienceId, message.trackId, message.intensity);
+    case COMMANDS.STATE:
+      if (message.ambience) await service.syncAmbienceDefinition(message.ambience);
+      return service.setState(message.ambienceId, message.group, message.state, { owner: message.owner, durationMs: message.durationMs });
+    case COMMANDS.CLEAR_STATE:
+      if (message.ambience) await service.syncAmbienceDefinition(message.ambience);
+      return service.clearState(message.ambienceId, message.group, { owner: message.owner, durationMs: message.durationMs });
     case COMMANDS.STOP_ALL:
       return service.stopAll();
     default:

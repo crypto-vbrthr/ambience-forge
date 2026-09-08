@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.2.0-alpha.2] - 2026-09-08
+
+### Changed
+- State/situation editor track overrides are now a compact three-column matrix (track, activation, volume factor) instead of nested form rows, reducing vertical height and eliminating the horizontal overflow seen with larger compositions.
+- The explanation for multiplicative state volume factors is shown once above the track matrix instead of being repeated for every track.
+- State-manager window width and responsive layout were adjusted for dense compositions.
+- API keys are now explicitly labeled optional in the UI. New groups/states derive a key from their name automatically until the user enters a custom stable key.
+- API-key help now explains that keys are intended for integrations/macros and gives examples such as `weather`, `rain`, `storm`, and `night`.
+
+### Tests
+- Added UI regression coverage for compact state rows, single multiplication guidance, and automatic optional API keys.
+
+## [0.2.0-alpha.1] - 2026-09-08
+
+### Added
+- **Combinable States / Situations** inside an Ambience composition. State groups such as Time of Day, Weather, or Situation each select one state while different groups combine.
+- State configuration UI with stable integration keys, per-state transition timing, tri-state track activation (`Unchanged`, `Activate`, `Deactivate`), and per-track volume factors from 0% to 300%.
+- Quick Control selectors for changing active states during play.
+- Public `setState()` and `clearState()` API methods plus the `states-v1` capability. API version increased compatibly from 1.0 to 1.1.
+- State ownership metadata so an integration can avoid clearing a state that has since been replaced by another owner.
+- Scene Emitters follow the desired state selections of their referenced composition, including live state changes.
+
+### Changed
+- Data schema increased from 3 to 4. Existing 0.1.0 compositions load unchanged with an empty state-group list.
+- Ambience runtimes now create controllers for all tracks so a state can activate a track whose base definition is disabled.
+- Live track volume remains the user-controlled base value; active state-group volume factors are resolved multiplicatively on top of it.
+- State changes use the state-specific, group, or composition transition duration to fade track starts, stops, and volume changes.
+- Quick Control lists all composition tracks so state-activated channels remain visible even if their base definition is disabled.
+
+### Tests
+- Added regression coverage for state normalization and key uniqueness, combined state resolution, default-state startup, state transitions, owner-safe clearing, socket/API routing, import ID remapping, Scene Emitter state propagation, and state UI contracts.
+
 All notable changes to **Ambience Forge** are documented in this file.
 
 Ambience Forge 0.1.0 is the first stable release. The public API remains deliberately versioned and compatibility-conscious.

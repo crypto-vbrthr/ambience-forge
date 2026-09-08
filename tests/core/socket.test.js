@@ -52,3 +52,56 @@ test("owner request socket command synchronizes the embedded ambience definition
   assert.equal(result, 1);
   assert.deepEqual(calls, [["sync", ambience], ["request", "storm", "weather-forge"]]);
 });
+
+test("state socket commands forward group, state, owner, and transition", async () => {
+  const calls = [];
+  const service = {
+    async setState(ambienceId, group, state, options) {
+      calls.push(["set", ambienceId, group, state, options]);
+      return state;
+    },
+    async clearState(ambienceId, group, options) {
+      calls.push(["clear", ambienceId, group, options]);
+      return true;
+    }
+  };
+  assert.equal(await executeCommand(service, {
+    command: COMMANDS.STATE,
+    ambienceId: "forest",
+    group: "weather",
+    state: "storm",
+    owner: "weather-forge",
+    durationMs: 4000
+  }), "storm");
+  assert.equal(await executeCommand(service, {
+    command: COMMANDS.CLEAR_STATE,
+    ambienceId: "forest",
+    group: "weather",
+    owner: "weather-forge",
+    durationMs: 1200
+  }), true);
+  assert.deepEqual(calls, [
+    ["set", "forest", "weather", "storm", { owner: "weather-forge", durationMs: 4000 }],
+    ["clear", "forest", "weather", { owner: "weather-forge", durationMs: 1200 }]
+  ]);
+});
+
+test("state socket command synchronizes an embedded ambience definition before applying the state", async () => {
+  const calls = [];
+  const ambience = { id: "forest", name: "Forest", tracks: [], stateGroups: [] };
+  const service = {
+    async syncAmbienceDefinition(value) { calls.push(["sync", value]); },
+    async setState(id, group, state, options) { calls.push(["state", id, group, state, options]); return state; }
+  };
+  const result = await executeCommand(service, {
+    command: COMMANDS.STATE,
+    ambienceId: "forest",
+    ambience,
+    group: "weather",
+    state: "storm",
+    owner: "weather-forge"
+  });
+  assert.equal(result, "storm");
+  assert.deepEqual(calls[0], ["sync", ambience]);
+  assert.deepEqual(calls[1], ["state", "forest", "weather", "storm", { owner: "weather-forge", durationMs: undefined }]);
+});

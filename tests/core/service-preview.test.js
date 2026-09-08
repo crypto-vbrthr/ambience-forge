@@ -197,3 +197,47 @@ test("explicit stop clears outstanding owner requests and runtime state", async 
   assert.deepEqual(service.getState().activeAmbienceIds, []);
   assert.equal(service.getState().owners.a, undefined);
 });
+
+test("state selection can be prepared before playback and survives a stop-start cycle", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{
+    id: "a",
+    name: "Forest",
+    tracks: [
+      { id: "wind", name: "Wind", type: "audio", source: "wind.ogg", repeat: true, volume: 0.5 },
+      { id: "rain", name: "Rain", type: "audio", source: "rain.ogg", repeat: true, volume: 0.8, enabled: false }
+    ],
+    stateGroups: [{
+      id: "weather-group", key: "weather", name: "Weather",
+      states: [{ id: "storm-state", key: "storm", name: "Storm", trackOverrides: [{ trackId: "rain", active: "on" }] }]
+    }]
+  }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+  await service.setState("a", "weather", "storm", { owner: "weather-forge" });
+  await service.playAmbience("a");
+  assert.equal(service.getState().ambienceStates.a.weather, "storm");
+  assert.equal(service.getState().ambienceStateOwners.a.weather, "weather-forge");
+  assert.ok(backend.events.some((event) => event.type === "startLoop" && event.options.src === "rain.ogg"));
+  await service.stopAmbience("a");
+  await service.playAmbience("a");
+  assert.equal(service.getState().ambienceStates.a.weather, "storm");
+});
+
+test("state owner cannot clear a state that was replaced by another owner", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{
+    id: "a", name: "Forest", tracks: [{ id: "wind", name: "Wind", type: "audio", source: "wind.ogg", repeat: true }],
+    stateGroups: [{ id: "weather-group", key: "weather", name: "Weather", states: [
+      { id: "rain-state", key: "rain", name: "Rain" },
+      { id: "storm-state", key: "storm", name: "Storm" }
+    ] }]
+  }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+  await service.setState("a", "weather", "rain", { owner: "weather-forge" });
+  await service.setState("a", "weather", "storm", { owner: "gm-script" });
+  assert.equal(await service.clearState("a", "weather", { owner: "weather-forge" }), false);
+  await service.playAmbience("a");
+  assert.equal(service.getState().ambienceStates.a.weather, "storm");
+});

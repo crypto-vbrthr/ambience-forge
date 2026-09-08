@@ -1,12 +1,24 @@
-import { SCHEMA_VERSION, TRACK_TYPES } from "../constants.js";
+import { SCHEMA_VERSION, STATE_ACTIVITY, TRACK_TYPES } from "../constants.js";
 
 const TRACK_TYPE_SET = new Set(Object.values(TRACK_TYPES));
+const STATE_ACTIVITY_SET = new Set(Object.values(STATE_ACTIVITY));
 const LEGACY_LOOP_TYPE = "loop";
 
 function clamp(value, min, max) {
   const n = Number(value);
   if (!Number.isFinite(n)) return min;
   return Math.min(max, Math.max(min, n));
+}
+
+export function slugifyKey(value, fallback = "state") {
+  const normalized = String(value ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+  return normalized || fallback;
 }
 
 export function createId(prefix = "af") {
@@ -82,7 +94,57 @@ export function normalizeTrack(input = {}, { idFactory = createId } = {}) {
   };
 }
 
+export function normalizeStateOverride(input = {}, validTrackIds = null) {
+  const trackId = String(input.trackId || "");
+  if (!trackId || (validTrackIds && !validTrackIds.has(trackId))) return null;
+  return {
+    trackId,
+    active: STATE_ACTIVITY_SET.has(input.active) ? input.active : STATE_ACTIVITY.INHERIT,
+    volumeFactor: clamp(input.volumeFactor ?? 1, 0, 3)
+  };
+}
+
+export function normalizeAmbienceState(input = {}, { idFactory = createId, validTrackIds = null } = {}) {
+  const name = String(input.name || "");
+  const overrides = Array.isArray(input.trackOverrides)
+    ? input.trackOverrides.map((entry) => normalizeStateOverride(entry, validTrackIds)).filter(Boolean)
+    : [];
+  return {
+    id: String(input.id || idFactory("state")),
+    key: slugifyKey(input.key || name, "state"),
+    name,
+    transitionMs: input.transitionMs == null || input.transitionMs === ""
+      ? null
+      : Math.max(0, Number(input.transitionMs) || 0),
+    trackOverrides: overrides
+  };
+}
+
+export function normalizeStateGroup(input = {}, { idFactory = createId, validTrackIds = null } = {}) {
+  const name = String(input.name || "");
+  const states = Array.isArray(input.states)
+    ? input.states.map((state) => normalizeAmbienceState(state, { idFactory, validTrackIds }))
+    : [];
+  const stateIds = new Set(states.map((state) => state.id));
+  const defaultStateId = stateIds.has(String(input.defaultStateId || "")) ? String(input.defaultStateId) : null;
+  return {
+    id: String(input.id || idFactory("state-group")),
+    key: slugifyKey(input.key || name, "group"),
+    name,
+    transitionMs: Math.max(0, Number(input.transitionMs ?? 3000) || 0),
+    defaultStateId,
+    states
+  };
+}
+
 export function normalizeAmbience(input = {}, { idFactory = createId } = {}) {
+  const tracks = Array.isArray(input.tracks)
+    ? input.tracks.map((track) => normalizeTrack(track, { idFactory }))
+    : [];
+  const validTrackIds = new Set(tracks.map((track) => track.id));
+  const stateGroups = Array.isArray(input.stateGroups)
+    ? input.stateGroups.map((group) => normalizeStateGroup(group, { idFactory, validTrackIds }))
+    : [];
   return {
     id: String(input.id || idFactory("ambience")),
     schemaVersion: SCHEMA_VERSION,
@@ -90,9 +152,8 @@ export function normalizeAmbience(input = {}, { idFactory = createId } = {}) {
     description: String(input.description || ""),
     masterVolume: clamp(input.masterVolume ?? 1, 0, 1),
     transitionMs: Math.max(0, Number(input.transitionMs ?? 3000) || 0),
-    tracks: Array.isArray(input.tracks)
-      ? input.tracks.map((track) => normalizeTrack(track, { idFactory }))
-      : []
+    tracks,
+    stateGroups
   };
 }
 
@@ -110,6 +171,22 @@ export function validateAmbience(input) {
     }
     if (track.type === TRACK_TYPES.INTENSITY && !track.variants?.length) {
       errors.push(`track.variantsRequired:${track.id ?? "unknown"}`);
+    }
+  }
+
+  const groups = Array.isArray(input.stateGroups) ? input.stateGroups : [];
+  const groupKeys = new Set();
+  for (const group of groups) {
+    if (!String(group.name || "").trim()) errors.push(`stateGroup.nameRequired:${group.id ?? "unknown"}`);
+    if (!String(group.key || "").trim()) errors.push(`stateGroup.keyRequired:${group.id ?? "unknown"}`);
+    if (groupKeys.has(group.key)) errors.push(`stateGroup.keyDuplicate:${group.key}`);
+    groupKeys.add(group.key);
+    const stateKeys = new Set();
+    for (const state of group.states ?? []) {
+      if (!String(state.name || "").trim()) errors.push(`state.nameRequired:${state.id ?? "unknown"}`);
+      if (!String(state.key || "").trim()) errors.push(`state.keyRequired:${state.id ?? "unknown"}`);
+      if (stateKeys.has(state.key)) errors.push(`state.keyDuplicate:${group.key}:${state.key}`);
+      stateKeys.add(state.key);
     }
   }
   return errors;

@@ -4,6 +4,7 @@ import { TRACK_TYPES } from "../constants.js";
 import { chooseIndex } from "./random.js";
 import { cloneData, normalizeAmbience, normalizeTrack, validateAmbience } from "../data/schema.js";
 import { exportAmbienceEnvelope, importAmbienceEnvelope } from "../data/export-import.js";
+import { findAmbienceState, findStateGroup } from "./state-resolver.js";
 
 export class AmbienceService {
   constructor({ store, backend, schedulerFactory, moduleVersion = "0.0.0", random = Math.random, onLibraryChanged = null }) {
@@ -18,6 +19,8 @@ export class AmbienceService {
     this.runtimes = new Map();
     this.explicitPlayback = new Set();
     this.owners = new OwnerRegistry();
+    this.desiredStates = new Map();
+    this.stateRevisions = new Map();
     this.previewHandle = null;
     this.previewRandomPreviousSource = null;
     this.previewSequencePreviousSource = null;
@@ -32,10 +35,19 @@ export class AmbienceService {
       return [ambience.id, ambience];
     }));
     this.revisions = new Map([...this.ambiences.keys()].map((id) => [id, 1]));
+    this.stateRevisions = new Map([...this.ambiences.keys()].map((id) => [id, 0]));
   }
 
   getAmbienceRevision(id) {
     return this.revisions.get(id) ?? 0;
+  }
+
+  getAmbienceStateRevision(id) {
+    return this.stateRevisions.get(id) ?? 0;
+  }
+
+  getDesiredStateSelections(id) {
+    return cloneData(this.#desiredSelections(id));
   }
 
   async reloadFromStore() {
@@ -60,6 +72,8 @@ export class AmbienceService {
         this.revisions.delete(id);
         this.explicitPlayback.delete(id);
         this.owners.clear(id);
+        this.desiredStates.delete(id);
+        this.stateRevisions.delete(id);
       }
     }
     this.ambiences = next;
@@ -78,6 +92,7 @@ export class AmbienceService {
     if (wasRunning) await this.#stopRuntime(ambience.id);
     this.ambiences.set(ambience.id, ambience);
     this.revisions.set(ambience.id, (this.revisions.get(ambience.id) ?? 0) + 1);
+    if (!this.stateRevisions.has(ambience.id)) this.stateRevisions.set(ambience.id, 0);
     if (wasRunning) await this.#startRuntime(ambience.id);
     await this.#notifyLibraryChanged([ambience.id]);
     return true;
@@ -98,6 +113,8 @@ export class AmbienceService {
       trackVolumes: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackVolumes()])),
       trackActiveStates: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackActiveStates()])),
       trackIntensities: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackIntensities()])),
+      ambienceStates: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getStateSelectionsByKey()])),
+      ambienceStateOwners: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getStateOwners()])),
       owners: Object.fromEntries([...this.owners.ownersByKey.entries()].map(([key, owners]) => [key, [...owners]]))
     };
   }
@@ -110,6 +127,7 @@ export class AmbienceService {
     if (wasRunning) await this.#stopRuntime(ambience.id);
     this.ambiences.set(ambience.id, ambience);
     this.revisions.set(ambience.id, (this.revisions.get(ambience.id) ?? 0) + 1);
+    if (!this.stateRevisions.has(ambience.id)) this.stateRevisions.set(ambience.id, 0);
     await this.#persist();
     if (wasRunning) await this.#startRuntime(ambience.id);
     await this.#notifyLibraryChanged([ambience.id]);
@@ -119,6 +137,8 @@ export class AmbienceService {
   async deleteAmbience(id) {
     this.explicitPlayback.delete(id);
     this.owners.clear(id);
+    this.desiredStates.delete(id);
+    this.stateRevisions.delete(id);
     await this.#stopRuntime(id);
     this.ambiences.delete(id);
     this.revisions.delete(id);
@@ -144,8 +164,16 @@ export class AmbienceService {
     const runtime = new AmbienceRuntime({
       ambience: normalizeAmbience(ambience),
       backend: this.backend,
-      schedulerFactory: this.schedulerFactory
+      schedulerFactory: this.schedulerFactory,
+      stateSelections: this.#desiredSelections(id)
     });
+    const desired = this.desiredStates.get(id);
+    if (desired) {
+      for (const group of runtime.ambience.stateGroups ?? []) {
+        const entry = desired.get(group.key);
+        if (entry?.owner) runtime.stateOwners.set(group.id, entry.owner);
+      }
+    }
     this.runtimes.set(id, runtime);
     try {
       await runtime.start();
@@ -200,8 +228,38 @@ export class AmbienceService {
     return this.runtimes.get(ambienceId)?.setTrackVolume(trackId, volume, options) ?? false;
   }
 
-  async setTrackActive(ambienceId, trackId, active) {
-    return this.runtimes.get(ambienceId)?.setTrackActive(trackId, active) ?? false;
+  async setTrackActive(ambienceId, trackId, active, options = {}) {
+    return this.runtimes.get(ambienceId)?.setTrackActive(trackId, active, options) ?? false;
+  }
+
+  async setState(ambienceId, groupRef, stateRef, { owner = null, durationMs = null } = {}) {
+    const ambience = this.ambiences.get(ambienceId);
+    if (!ambience) throw new Error(`Unknown Ambience Forge ambience: ${ambienceId}`);
+    const group = findStateGroup(ambience, groupRef);
+    if (!group) throw new Error(`Unknown Ambience Forge state group: ${groupRef}`);
+    const state = findAmbienceState(group, stateRef);
+    if (!state) throw new Error(`Unknown Ambience Forge state: ${stateRef}`);
+    const desired = this.#desiredMap(ambienceId);
+    desired.set(group.key, { stateKey: state.key, owner: owner ? String(owner) : null });
+    this.stateRevisions.set(ambienceId, (this.stateRevisions.get(ambienceId) ?? 0) + 1);
+    const runtime = this.runtimes.get(ambienceId);
+    if (runtime) await runtime.setState(group.key, state.key, { owner, durationMs });
+    return state.key;
+  }
+
+  async clearState(ambienceId, groupRef, { owner = null, durationMs = null } = {}) {
+    const ambience = this.ambiences.get(ambienceId);
+    if (!ambience) throw new Error(`Unknown Ambience Forge ambience: ${ambienceId}`);
+    const group = findStateGroup(ambience, groupRef);
+    if (!group) throw new Error(`Unknown Ambience Forge state group: ${groupRef}`);
+    const desired = this.#desiredMap(ambienceId);
+    const current = desired.get(group.key);
+    if (owner && current?.owner && current.owner !== String(owner)) return false;
+    desired.set(group.key, { stateKey: null, owner: null });
+    this.stateRevisions.set(ambienceId, (this.stateRevisions.get(ambienceId) ?? 0) + 1);
+    const runtime = this.runtimes.get(ambienceId);
+    if (runtime) return runtime.clearState(group.key, { owner, durationMs });
+    return true;
   }
 
   async setTrackIntensity(ambienceId, trackId, intensity) {
@@ -328,6 +386,17 @@ export class AmbienceService {
     this.owners.clearAll();
     await Promise.all([...this.runtimes.keys()].map((id) => this.#stopRuntime(id)));
     await this.stopPreview();
+  }
+
+  #desiredMap(ambienceId) {
+    if (!this.desiredStates.has(ambienceId)) this.desiredStates.set(ambienceId, new Map());
+    return this.desiredStates.get(ambienceId);
+  }
+
+  #desiredSelections(ambienceId) {
+    const desired = this.desiredStates.get(ambienceId);
+    if (!desired) return {};
+    return Object.fromEntries([...desired.entries()].map(([groupKey, entry]) => [groupKey, entry?.stateKey ?? null]));
   }
 
   async #persist() {

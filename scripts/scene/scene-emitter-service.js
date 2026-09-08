@@ -262,7 +262,8 @@ export class SceneEmitterService {
     this.previewRuntime = new AmbienceRuntime({
       ambience: preview,
       backend: this.backend,
-      schedulerFactory: this.schedulerFactory
+      schedulerFactory: this.schedulerFactory,
+      stateSelections: this.getAmbienceService()?.getDesiredStateSelections?.(emitter.ambienceId) ?? {}
     });
     await this.previewRuntime.start();
     return true;
@@ -325,6 +326,8 @@ export class SceneEmitterService {
       }
       let entry = this.runtimes.get(emitter.id);
       const revision = ambienceService.getAmbienceRevision?.(emitter.ambienceId) ?? 0;
+      const stateRevision = ambienceService.getAmbienceStateRevision?.(emitter.ambienceId) ?? 0;
+      const desiredStates = ambienceService.getDesiredStateSelections?.(emitter.ambienceId) ?? {};
       const failure = this.failures.get(emitter.id);
       if (failure && (failure.ambienceId !== emitter.ambienceId || failure.revision !== revision)) {
         this.failures.delete(emitter.id);
@@ -343,12 +346,22 @@ export class SceneEmitterService {
           const runtime = new AmbienceRuntime({
             ambience: runtimeAmbience,
             backend: this.backend,
-            schedulerFactory: this.schedulerFactory
+            schedulerFactory: this.schedulerFactory,
+            stateSelections: desiredStates
           });
           await runtime.start();
-          entry = { ambienceId: emitter.ambienceId, revision, runtime };
+          entry = { ambienceId: emitter.ambienceId, revision, stateRevision, runtime };
           this.runtimes.set(emitter.id, entry);
         } else {
+          if (entry.stateRevision !== stateRevision) {
+            for (const group of ambience.stateGroups ?? []) {
+              if (!Object.prototype.hasOwnProperty.call(desiredStates, group.key)) continue;
+              const stateKey = desiredStates[group.key];
+              if (stateKey) await entry.runtime.setState(group.key, stateKey);
+              else await entry.runtime.clearState(group.key);
+            }
+            entry.stateRevision = stateRevision;
+          }
           await entry.runtime.setMasterVolume(effectiveMaster, { durationMs: this.tickMs });
         }
         this.failures.delete(emitter.id);

@@ -316,3 +316,81 @@
   opacity: 0;
   pointer-events: none;
 }
+
+.ambience-forge-state-manager {
+  min-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ambience-forge-state-window .window-content {
+  overflow-y: auto;
+}
+
+.ambience-forge-state-overrides {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  max-height: 58vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.15rem;
+}
+
+.ambience-forge-state-override {
+  border: 1px solid var(--color-border-light-primary, #777);
+  border-radius: 4px;
+  padding: 0.38rem 0.5rem;
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(9rem, 0.85fr) minmax(15rem, 1.35fr);
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.ambience-forge-state-override > select,
+.ambience-forge-state-override > .ambience-forge-volume-control {
+  width: 100%;
+  min-width: 0;
+}
+
+.ambience-forge-state-track-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ambience-forge-state-override-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-block: 0.28rem;
+  background: var(--color-cool-5-90, rgb(20 20 24 / 94%));
+  border-color: var(--color-border-light-primary, #777);
+}
+
+.ambience-forge-state-override-header > strong {
+  font-size: 0.9em;
+}
+
+.ambience-forge-quick-state-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.35rem 0.55rem;
+}
+
+@media (max-width: 760px) {
+  .ambience-forge-state-override {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
+
+  .ambience-forge-state-override-header {
+    display: none;
+  }
+
+  .ambience-forge-state-track-name {
+    margin-bottom: 0.1rem;
+  }
+}

@@ -2,30 +2,7 @@
 
 Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finished audio assets. It controls **what plays, when it plays, how loudly it plays, and which layers run in parallel**. It intentionally does not edit audio or apply EQ, reverb, filters, pitch changes, or other sound processing.
 
-
-## Part of the Forge Suite
-
-**Ambience Forge** is part of the **Forge Suite**, a growing collection of Foundry VTT modules and add-ons built for the busy Game Master. The suite is designed to reduce preparation and bookkeeping, make common GM tasks easier, and add useful tools that help make running and playing campaigns smoother and more enjoyable.
-
-An overview of the Forge Suite, its modules, add-ons, and shared documentation is available here:
-
-**Forge Suite:** https://github.com/crypto-vbrthr/pf2e-forge-suite
-
-
-## Feedback, Bug Reports & Feature Requests
-
-Found a bug, have an idea for an improvement, or would like to suggest a new feature?
-
-Feedback is always welcome. Please feel free to open a new **GitHub Issue** at any time, whether you want to report a problem, suggest a quality-of-life improvement, propose a new feature, or share an idea for how the module could be made more useful.
-
-When reporting a bug, please include as much relevant information as possible, such as the Foundry VTT version, PF2e system version, module version, steps to reproduce the issue, and any console errors or screenshots that may help identify the problem.
-
-Suggestions and feature requests are equally welcome. Even small ideas can lead to useful improvements.
-
-**Open an issue here:** https://github.com/crypto-vbrthr/ambience-forge/issues
-
-
-## 0.1.0 feature set
+## 0.2.0-alpha.2 feature set
 
 - Layered Ambience compositions with saved master volume.
 - **Audio Tracks** for one-shot playback or seamless buffered Web Audio looping. Long one-shots use Foundry's streaming-capable `Sound` path; repeating ambience uses direct buffered Web Audio.
@@ -33,14 +10,15 @@ Suggestions and feature requests are equally welcome. Even small ideas can lead 
 - **Sequence Tracks** with sequential or randomized order and configurable pauses.
 - **Intensity Tracks** with ordered variants and crossfades between intensity levels.
 - Persistent `ApplicationV2` editors with inline Foundry audio file pickers and non-destructive preview.
-- **Quick Control** for temporary live master volume, per-track volume, track start/stop, and intensity changes. Ambience Forge also respects Foundry's Environment master-volume control.
+- **Quick Control** for temporary live master volume, per-track volume, track start/stop, intensity changes, and live state/situation switching. Ambience Forge also respects Foundry's Environment master-volume control.
+- **Combinable States / Situations** inside a composition. Organize one-of-many groups such as `time-of-day`, `weather`, or `situation`; each state can activate/deactivate tracks and multiply their volume, while different groups combine.
 - **Scene Emitters** with position, radius, distance falloff, canvas markers, drag-and-drop movement, enable/disable, and Foundry-aware wall/door handling (`Ignore`, `Attenuate`, `Block`).
 - Composition **JSON import/export** for reuse across Foundry worlds. Audio files are referenced by path and are not embedded in exports.
 - English and German localization.
 - Automated Node test suite and validation checks.
 - MIT License, maintained `CHANGELOG.md`, and a documented versioned public API.
 
-Ambience Forge 0.1.0 is the first stable feature release. Future development should preserve the documented public API and schema compatibility wherever practical.
+Ambience Forge 0.2.0-alpha.2 begins the next development line on top of the stable 0.1.0 foundation. The new state system is intentionally integration-first so modules such as Weather Forge or Calendar Forge can control the same composition without duplicating audio setups.
 
 ## Audio philosophy
 
@@ -48,7 +26,7 @@ Prepare sound files externally with the editor or audio tool of your choice. Amb
 
 ## Public API
 
-The public API is versioned independently from the module release. Ambience Forge 0.1.0 exposes API version `1.0`. See [`API.md`](API.md) for the complete integration contract.
+The public API is versioned independently from the module release. Ambience Forge 0.2.0-alpha.2 exposes API version `1.1`. See [`API.md`](API.md) for the complete integration contract.
 
 
 Other modules may access the versioned API through:
@@ -71,6 +49,9 @@ ambienceForge.setMasterVolume(id, 0.5);
 ambienceForge.setTrackVolume(id, trackId, 0.5);
 ambienceForge.setTrackActive(id, trackId, false);
 ambienceForge.setTrackIntensity(id, trackId, 0.75);
+
+ambienceForge.setState(id, "weather", "storm", { owner: "weather-forge" });
+ambienceForge.setState(id, "time-of-day", "night", { owner: "calendar-forge" });
 
 const exported = ambienceForge.exportAmbience(id);
 const imported = await ambienceForge.importAmbience(exported);

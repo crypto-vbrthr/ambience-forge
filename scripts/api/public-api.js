@@ -32,7 +32,8 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
       "scene-emitters-v1",
       "scene-emitter-markers-v1",
       "scene-emitter-obstruction-v1",
-      "import-export-v1"
+      "import-export-v1",
+      "states-v1"
     ]),
 
     isReady: () => Boolean(getService()),
@@ -103,6 +104,31 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
       trackId,
       intensity
     }, { broadcast }),
+
+    setState: (ambienceId, group, state, { owner = null, durationMs = null, broadcast = true } = {}) => {
+      const value = service();
+      return executeSynchronized(value, {
+        command: COMMANDS.STATE,
+        ambienceId,
+        ambience: value.getAmbience(ambienceId),
+        group,
+        state,
+        owner,
+        durationMs
+      }, { broadcast });
+    },
+
+    clearState: (ambienceId, group, { owner = null, durationMs = null, broadcast = true } = {}) => {
+      const value = service();
+      return executeSynchronized(value, {
+        command: COMMANDS.CLEAR_STATE,
+        ambienceId,
+        ambience: value.getAmbience(ambienceId),
+        group,
+        owner,
+        durationMs
+      }, { broadcast });
+    },
 
     previewAudio: (track) => service().previewAudio(track),
     previewLoop: (track) => service().previewLoop(track),

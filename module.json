@@ -1,11 +1,11 @@
 {
   "id": "ambience-forge",
   "title": "Ambience Forge",
-  "description": "A system-agnostic Foundry VTT engine for layered ambience, seamless buffered audio loops, randomized sound events, sequencing, intensity transitions, and an integration-first public API.",
-  "version": "0.1.0",
+  "description": "A system-agnostic Foundry VTT engine for layered ambience, seamless loops, randomized events, sequencing, intensity transitions, combinable states/situations, spatial emitters, and a public integration API.",
+  "version": "0.2.0-alpha.2",
   "compatibility": {
     "minimum": "14",
-    "verified": "14"
+    "verified": "14.365"
   },
   "esmodules": [
     "scripts/main.js"
@@ -25,8 +25,5 @@
       "path": "lang/de.json"
     }
   ],
-  "url": "https://github.com/crypto-vbrthr/ambience-forge",
-  "manifest": "https://raw.githubusercontent.com/crypto-vbrthr/ambience-forge/refs/heads/main/module.json",
-  "download": "https://github.com/crypto-vbrthr/ambience-forge/releases/download/0.1.0/ambience-forge.zip",
   "socket": true
 }

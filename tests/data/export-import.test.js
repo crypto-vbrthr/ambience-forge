@@ -53,3 +53,31 @@ test("audio source collection covers every track model without duplicates", () =
   });
   assert.deepEqual(collectAmbienceAudioSources(ambience).sort(), ["bed.ogg", "high.ogg", "low.ogg", "owl.ogg", "song.ogg"]);
 });
+
+test("import remaps state ids and track override references", () => {
+  const ambience = normalizeAmbience({
+    id: "old-ambience",
+    name: "Forest",
+    tracks: [{ id: "old-rain", name: "Rain", type: "audio", source: "rain.ogg", enabled: false }],
+    stateGroups: [{
+      id: "old-group",
+      key: "weather",
+      name: "Weather",
+      defaultStateId: "old-state",
+      states: [{
+        id: "old-state",
+        key: "rain",
+        name: "Rain",
+        trackOverrides: [{ trackId: "old-rain", active: "on", volumeFactor: 0.75 }]
+      }]
+    }]
+  });
+  let n = 0;
+  const imported = importAmbienceEnvelope(exportAmbienceEnvelope(ambience, "0.2.0-alpha.1"), { idFactory: (prefix) => `${prefix}-${++n}` });
+  const group = imported.stateGroups[0];
+  const state = group.states[0];
+  assert.notEqual(group.id, "old-group");
+  assert.notEqual(state.id, "old-state");
+  assert.equal(group.defaultStateId, state.id);
+  assert.equal(state.trackOverrides[0].trackId, imported.tracks[0].id);
+});

@@ -116,6 +116,19 @@ function activeTrackControl(ambience, track, state) {
   return section;
 }
 
+
+function stateGroupControl(ambience, group, state) {
+  const selected = state.ambienceStates?.[ambience.id]?.[group.key] ?? null;
+  const options = [
+    { value: "", label: game.i18n.localize("AMBIENCE_FORGE.Quick.StateNone") },
+    ...(group.states ?? []).map((entry) => ({ value: entry.key, label: entry.name }))
+  ];
+  const control = select(`quickState-${ambience.id}-${group.id}`, options, selected ?? "");
+  control.dataset.afQuickStateGroup = group.key;
+  control.dataset.ambienceId = ambience.id;
+  return field(group.name, control);
+}
+
 function activeCard(api, ambience, state) {
   const card = element("section", { className: "ambience-forge-quick-card", attrs: { "data-af-active-ambience": ambience.id } });
   const header = element("div", { className: "ambience-forge-quick-card-header" });
@@ -131,7 +144,14 @@ function activeCard(api, ambience, state) {
     volumeSlider(`quickMaster-${ambience.id}`, Math.round(master * 100), { "af-quick-master": ambience.id }),
   ));
 
-  const enabledTracks = ambience.tracks.filter((track) => track.enabled !== false);
+  if (ambience.stateGroups?.length) {
+    card.append(element("h4", { className: "ambience-forge-quick-tracks-heading", text: game.i18n.localize("AMBIENCE_FORGE.Quick.States") }));
+    const states = element("div", { className: "ambience-forge-quick-state-list" });
+    for (const group of ambience.stateGroups) states.append(stateGroupControl(ambience, group, state));
+    card.append(states);
+  }
+
+  const enabledTracks = ambience.tracks ?? [];
   if (enabledTracks.length) {
     card.append(element("h4", { className: "ambience-forge-quick-tracks-heading", text: game.i18n.localize("AMBIENCE_FORGE.Quick.Channels") }));
     const tracks = element("div", { className: "ambience-forge-quick-track-list" });
@@ -235,6 +255,23 @@ function getQuickAppClass() {
           if (!ambienceId) return;
           const volume = Math.min(100, Math.max(0, Number(slider.value) || 0)) / 100;
           await this.api.setMasterVolume(ambienceId, volume, { durationMs: 150 });
+        });
+      }
+
+      for (const control of root.querySelectorAll("[data-af-quick-state-group]")) {
+        control.addEventListener("change", async () => {
+          const ambienceId = String(control.dataset.ambienceId ?? "").trim();
+          const group = String(control.dataset.afQuickStateGroup ?? "").trim();
+          if (!ambienceId || !group) return;
+          const stateKey = String(control.value ?? "").trim();
+          try {
+            if (stateKey) await this.api.setState(ambienceId, group, stateKey, { owner: "ambience-forge-ui" });
+            else await this.api.clearState(ambienceId, group);
+          } catch (error) {
+            console.error("ambience-forge | quick state change failed", error);
+            ui.notifications.error(error.message);
+          }
+          return this.render(true);
         });
       }
 

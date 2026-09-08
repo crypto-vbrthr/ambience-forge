@@ -38,3 +38,10 @@ test("Quick Control shows the temporary-playback note only once at the top", () 
   assert.doesNotMatch(source, /AMBIENCE_FORGE\.Quick\.MasterVolumeHint/);
   assert.doesNotMatch(source, /AMBIENCE_FORGE\.Quick\.TrackVolumeHint/);
 });
+
+test("Quick Control exposes combinable state groups for live switching", () => {
+  assert.match(source, /data-af-quick-state-group/);
+  assert.match(source, /AMBIENCE_FORGE\.Quick\.States/);
+  assert.match(source, /this\.api\.setState/);
+  assert.match(source, /this\.api\.clearState/);
+});

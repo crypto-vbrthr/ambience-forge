@@ -1,5 +1,6 @@
 import { TRACK_TYPES } from "../constants.js";
 import { cloneData, normalizeTrack } from "../data/schema.js";
+import { openStateManager } from "./state-manager.js";
 
 function element(tag, { className = "", text = "", attrs = {} } = {}) {
   const node = document.createElement(tag);
@@ -286,6 +287,7 @@ function editorContent(ambience) {
     editorActionButton("add-random", "AMBIENCE_FORGE.Editor.AddRandom", "fa-solid fa-dice"),
     editorActionButton("add-sequence", "AMBIENCE_FORGE.Editor.AddSequence", "fa-solid fa-list-ol"),
     editorActionButton("add-intensity", "AMBIENCE_FORGE.Editor.AddIntensity", "fa-solid fa-arrow-trend-up"),
+    editorActionButton("states", "AMBIENCE_FORGE.Editor.States", "fa-solid fa-sliders"),
     editorActionButton("edit-track", "AMBIENCE_FORGE.Editor.EditTrack", "fa-solid fa-pen-to-square"),
     editorActionButton("delete-track", "AMBIENCE_FORGE.Editor.DeleteTrack", "fa-solid fa-trash"),
     editorActionButton("back", "AMBIENCE_FORGE.Common.Back", "fa-solid fa-arrow-left")
@@ -1032,6 +1034,7 @@ function getManagerAppClass() {
       if (action === "add-random") return this.showRandomTrack(saved.id, null);
       if (action === "add-sequence") return this.showSequenceTrack(saved.id, null);
       if (action === "add-intensity") return this.showIntensityTrack(saved.id, null);
+      if (action === "states") return openStateManager(this.api, saved.id);
       if (action === "edit-track") {
         if (!requireTrackSelection(trackId)) return this.render(true);
         const track = saved.tracks.find((candidate) => candidate.id === trackId);
