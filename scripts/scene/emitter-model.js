@@ -1,7 +1,12 @@
 import { MODULE_ID } from "../constants.js";
 
 export const EMITTER_FLAG = "emitter";
-export const EMITTER_SCHEMA_VERSION = 2;
+export const EMITTER_SCHEMA_VERSION = 3;
+export const EMITTER_OBSTRUCTION_MODES = Object.freeze({
+  IGNORE: "ignore",
+  ATTENUATE: "attenuate",
+  BLOCK: "block"
+});
 export const SILENCE_PATH = `modules/${MODULE_ID}/assets/silence.ogg`;
 
 function clamp01(value) {
@@ -24,6 +29,10 @@ export function isAmbienceEmitter(document) {
 }
 
 export function normalizeEmitterData(input = {}) {
+  const requestedMode = String(input.obstructionMode ?? input.obstruction?.mode ?? EMITTER_OBSTRUCTION_MODES.IGNORE);
+  const obstructionMode = Object.values(EMITTER_OBSTRUCTION_MODES).includes(requestedMode)
+    ? requestedMode
+    : EMITTER_OBSTRUCTION_MODES.IGNORE;
   return {
     id: String(input.id ?? input._id ?? ""),
     ambienceId: String(input.ambienceId ?? ""),
@@ -33,7 +42,9 @@ export function normalizeEmitterData(input = {}) {
     radius: Math.max(0, Number(input.radius) || 0),
     volume: clamp01(input.volume ?? 1),
     easing: input.easing !== false,
-    enabled: input.enabled !== false
+    enabled: input.enabled !== false,
+    obstructionMode,
+    obstructionAttenuation: clamp01(input.obstructionAttenuation ?? input.obstruction?.attenuation ?? 0.7)
   };
 }
 
@@ -49,7 +60,9 @@ export function emitterDataFromDocument(document) {
     radius: document.radius,
     volume: document.volume,
     easing: document.easing,
-    enabled: flag.enabled !== false
+    enabled: flag.enabled !== false,
+    obstructionMode: flag.obstructionMode ?? EMITTER_OBSTRUCTION_MODES.IGNORE,
+    obstructionAttenuation: flag.obstructionAttenuation ?? 0.7
   });
 }
 
@@ -69,4 +82,16 @@ export function computeEmitterGain({ emitter, listener, scene }) {
   if (distance > radiusPx) return 0;
   const attenuation = emitter.easing === false ? 1 : Math.max(0, 1 - (distance / radiusPx));
   return clamp01((emitter.volume ?? 1) * attenuation);
+}
+
+export function applyEmitterObstruction(gain, emitter, obstructed) {
+  const base = clamp01(gain);
+  if (!(base > 0) || !obstructed) return base;
+  const mode = emitter?.obstructionMode ?? EMITTER_OBSTRUCTION_MODES.IGNORE;
+  if (mode === EMITTER_OBSTRUCTION_MODES.BLOCK) return 0;
+  if (mode === EMITTER_OBSTRUCTION_MODES.ATTENUATE) {
+    const reduction = clamp01(emitter?.obstructionAttenuation ?? 0.7);
+    return base * (1 - reduction);
+  }
+  return base;
 }

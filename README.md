@@ -94,7 +94,7 @@ Adds the first Random track editor with sound lists, random minimum/maximum paus
 - Adds first-stage Scene Emitters. A saved Ambience composition can be placed spatially on the active Scene with a position, hearing radius, maximum volume, and optional distance falloff.
 - Emitters are backed by silent native Foundry Ambient Sound placeables, keeping Foundry's familiar map handles available while Ambience Forge performs the actual layered Web Audio playback.
 - Spatial playback is evaluated locally for each client using listener token positions.
-- Wall and door attenuation/blocking are planned for the next emitter development step.
+- Scene Emitters support distance falloff plus optional wall/door behavior.
 
 ## Alpha 22
 
@@ -102,3 +102,9 @@ Adds the first Random track editor with sound lists, random minimum/maximum paus
 - Clicking a marker opens the Ambience Forge emitter editor for that exact source.
 - Hovering a marker exposes quick Edit and Enable/Disable actions.
 - Emitters now keep an explicit enabled state. Disabled emitters remain positioned on the Scene and visibly marked, but produce no playback.
+
+## Alpha 26
+
+- Adds Foundry-aware wall and door handling for Scene Emitters: **Ignore**, **Attenuate**, or **Block**.
+- Attenuation is a simple volume reduction only; Ambience Forge still does not apply EQ, filters, reverb, or other sound processing.
+- Foundry's native sound-source geometry decides whether a configured wall or current door state obstructs a listener, so opened doors automatically allow the ambience through according to Foundry's wall sound rules.

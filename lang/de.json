@@ -73,6 +73,7 @@
   "AMBIENCE_FORGE.Emitter.MarkerDisabledName": "{name} (inaktiv)",
   "AMBIENCE_FORGE.Emitter.MarkerEdit": "{name} bearbeiten",
   "AMBIENCE_FORGE.Emitter.MarkerEnable": "{name} aktivieren",
+  "AMBIENCE_FORGE.Emitter.MarkerMain": "{name}: Mit linker Maustaste ziehen zum Verschieben",
   "AMBIENCE_FORGE.Emitter.MaxVolume": "Maximale Lautstärke",
   "AMBIENCE_FORGE.Emitter.MaxVolumeHint": "Wird am Ursprung mit der Gesamtlautstärke der Komposition multipliziert.",
   "AMBIENCE_FORGE.Emitter.Name": "Name der Klangquelle",
@@ -80,6 +81,13 @@
   "AMBIENCE_FORGE.Emitter.NewHint": "Komposition und Reichweite einstellen, anschließend vor dem Speichern eine Position auf der Karte wählen.",
   "AMBIENCE_FORGE.Emitter.NoAmbiences": "Lege zuerst eine Ambience-Komposition an, bevor du eine Klangquelle platzierst.",
   "AMBIENCE_FORGE.Emitter.NotFound": "Die ausgewählte Klangquelle wurde nicht gefunden.",
+  "AMBIENCE_FORGE.Emitter.ObstructionAttenuate": "Dämpfen",
+  "AMBIENCE_FORGE.Emitter.ObstructionAttenuation": "Dämpfung durch Hindernisse",
+  "AMBIENCE_FORGE.Emitter.ObstructionAttenuationHint": "Bei einem Hindernis wird die räumliche Ambience um diesen Prozentsatz reduziert. 70 % Dämpfung lassen 30 % der ungehinderten Lautstärke übrig.",
+  "AMBIENCE_FORGE.Emitter.ObstructionBlock": "Blockieren",
+  "AMBIENCE_FORGE.Emitter.ObstructionIgnore": "Ignorieren",
+  "AMBIENCE_FORGE.Emitter.ObstructionMode": "Wände und Türen",
+  "AMBIENCE_FORGE.Emitter.ObstructionModeHint": "Bestimmt, wie Foundry-Wände und -Türen mit Schallbeschränkung diese Klangquelle beeinflussen. Geöffnete Türen lassen den Klang automatisch durch.",
   "AMBIENCE_FORGE.Emitter.PickPosition": "Position wählen",
   "AMBIENCE_FORGE.Emitter.Position": "Position (X, Y)",
   "AMBIENCE_FORGE.Emitter.PositionHint": "Wähle einen Punkt auf der Karte. Bestehende Quellen können zusätzlich auf Foundrys Sound-Ebene verschoben werden.",
@@ -202,6 +210,5 @@
   "AMBIENCE_FORGE.TrackType.audio": "Audio",
   "AMBIENCE_FORGE.TrackType.intensity": "Intensität",
   "AMBIENCE_FORGE.TrackType.random": "Zufall",
-  "AMBIENCE_FORGE.TrackType.sequence": "Sequenz",
-  "AMBIENCE_FORGE.Emitter.MarkerMain": "{name}: Klicken zum Bearbeiten, mit linker Maustaste ziehen zum Verschieben"
+  "AMBIENCE_FORGE.TrackType.sequence": "Sequenz"
 }

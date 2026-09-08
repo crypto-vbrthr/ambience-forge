@@ -73,6 +73,7 @@
   "AMBIENCE_FORGE.Emitter.MarkerDisabledName": "{name} (inactive)",
   "AMBIENCE_FORGE.Emitter.MarkerEdit": "Edit {name}",
   "AMBIENCE_FORGE.Emitter.MarkerEnable": "Enable {name}",
+  "AMBIENCE_FORGE.Emitter.MarkerMain": "{name}: Drag with the left mouse button to move",
   "AMBIENCE_FORGE.Emitter.MaxVolume": "Maximum volume",
   "AMBIENCE_FORGE.Emitter.MaxVolumeHint": "Multiplies the composition master volume at the emitter origin.",
   "AMBIENCE_FORGE.Emitter.Name": "Emitter name",
@@ -80,6 +81,13 @@
   "AMBIENCE_FORGE.Emitter.NewHint": "Choose the composition and radius, then choose a position on the Scene before saving.",
   "AMBIENCE_FORGE.Emitter.NoAmbiences": "Create an ambience composition before placing a scene emitter.",
   "AMBIENCE_FORGE.Emitter.NotFound": "The selected scene emitter could not be found.",
+  "AMBIENCE_FORGE.Emitter.ObstructionAttenuate": "Attenuate",
+  "AMBIENCE_FORGE.Emitter.ObstructionAttenuation": "Obstruction attenuation",
+  "AMBIENCE_FORGE.Emitter.ObstructionAttenuationHint": "When obstructed, reduce the spatial ambience by this percentage. 70% attenuation leaves 30% of the unobstructed volume.",
+  "AMBIENCE_FORGE.Emitter.ObstructionBlock": "Block",
+  "AMBIENCE_FORGE.Emitter.ObstructionIgnore": "Ignore",
+  "AMBIENCE_FORGE.Emitter.ObstructionMode": "Walls and doors",
+  "AMBIENCE_FORGE.Emitter.ObstructionModeHint": "Choose how Foundry walls and doors with sound restrictions affect this emitter. Open doors allow sound through automatically.",
   "AMBIENCE_FORGE.Emitter.PickPosition": "Choose position",
   "AMBIENCE_FORGE.Emitter.Position": "Position (X, Y)",
   "AMBIENCE_FORGE.Emitter.PositionHint": "Choose a point on the Scene. Existing emitters can also be moved on Foundry’s Sound layer.",
@@ -202,6 +210,5 @@
   "AMBIENCE_FORGE.TrackType.audio": "Audio",
   "AMBIENCE_FORGE.TrackType.intensity": "Intensity",
   "AMBIENCE_FORGE.TrackType.random": "Random",
-  "AMBIENCE_FORGE.TrackType.sequence": "Sequence",
-  "AMBIENCE_FORGE.Emitter.MarkerMain": "{name}: Click to edit, drag with the left mouse button to move"
+  "AMBIENCE_FORGE.TrackType.sequence": "Sequence"
 }

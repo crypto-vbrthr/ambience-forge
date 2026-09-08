@@ -30,7 +30,8 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
       "master-volume-v1",
       "track-live-control-v1",
       "scene-emitters-v1",
-      "scene-emitter-markers-v1"
+      "scene-emitter-markers-v1",
+      "scene-emitter-obstruction-v1"
     ]),
 
     isReady: () => Boolean(getService()),

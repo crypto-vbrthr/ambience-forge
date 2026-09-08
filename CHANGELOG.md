@@ -6,6 +6,36 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## [0.1.0-alpha.28] - 2026-09-08
+
+### Changed
+- A normal left click on a Scene Emitter marker no longer opens the editor.
+- The main marker is now dedicated to drag-and-drop repositioning; editing remains available through the explicit hover Edit button.
+- Updated the marker tooltip to describe drag-to-move only.
+
+## [0.1.0-alpha.27] - 2026-09-08
+
+### Fixed
+- Dragging a Scene Emitter now persists its new position immediately without opening the emitter editor afterward.
+- Scene Emitter hover actions remain visible while moving the pointer between the main marker, Edit, and Enable/Disable controls.
+
+### Changed
+- Scene Emitter drag gestures now use a short post-drag click-suppression window to avoid PIXI `pointertap` firing after `pointerup`.
+- The PIXI marker container now owns a stable hover hit area and uses non-bubbling `pointerenter` / `pointerleave` events.
+
+## [0.1.0-alpha.26] - 2026-09-08
+
+### Added
+- Scene Emitter wall/door behavior with three focused modes: **Ignore**, **Attenuate**, and **Block**.
+- Configurable obstruction attenuation. For example, 70% attenuation leaves 30% of the otherwise calculated spatial volume.
+- Open/closed doors and Foundry wall sound restrictions are evaluated through Foundry V14's native `PointSoundSource` geometry rather than custom wall intersection logic.
+- Scene Emitters react to wall creation, updates (including door state changes), and deletion.
+- `scene-emitter-obstruction-v1` public API capability.
+
+### Changed
+- Scene Emitter flag schema increased to version 3. Existing emitters remain compatible and default to **Ignore**.
+- Silent AmbientSound proxies enable Foundry wall constraints only when the emitter uses Attenuate or Block mode.
+
 ## 0.1.0-alpha.25
 
 - Replaced the HTML/DOM Scene-emitter marker overlay with native PIXI markers attached directly to Foundry VTT's `InterfaceCanvasGroup`.
