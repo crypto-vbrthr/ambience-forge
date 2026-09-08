@@ -2,7 +2,7 @@
 
 Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finished audio assets. It controls **what plays, when it plays, how loudly it plays, and which layers run in parallel**. It intentionally does not edit audio or apply EQ, reverb, filters, pitch changes, or other sound processing.
 
-## Current 0.1.0 alpha feature set
+## 0.1.0 release candidate feature set
 
 - Layered Ambience compositions with saved master volume.
 - **Audio Tracks** for one-shot playback or seamless buffered Web Audio looping. Long one-shots use Foundry's streaming-capable `Sound` path; repeating ambience uses direct buffered Web Audio.
@@ -15,13 +15,18 @@ Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finishe
 - Composition **JSON import/export** for reuse across Foundry worlds. Audio files are referenced by path and are not embedded in exports.
 - English and German localization.
 - Automated Node test suite and validation checks.
-- MIT License and maintained `CHANGELOG.md`.
+- MIT License, maintained `CHANGELOG.md`, and a documented versioned public API.
+
+The 0.1.0 release candidate is feature-frozen. Until the final 0.1.0 release, changes are limited to bug fixes, compatibility fixes, localization corrections, and release hygiene.
 
 ## Audio philosophy
 
 Prepare sound files externally with the editor or audio tool of your choice. Ambience Forge only handles playback orchestration, volume, fades, and crossfades. For seamless ambience beds, prepared OGG loops are recommended.
 
 ## Public API
+
+The public API is versioned independently from the module release. The 0.1.0 release candidate exposes API version `1.0`. See [`API.md`](API.md) for the complete integration contract.
+
 
 Other modules may access the versioned API through:
 

@@ -2,9 +2,21 @@
 
 All notable changes to **Ambience Forge** are documented in this file.
 
-The project is currently in alpha development. Until the first stable release,
-internal details may still change, while the public API is kept deliberately
-versioned and compatibility-conscious.
+The project is currently in release-candidate testing for 0.1.0. The feature set is frozen until the final 0.1.0 release; release-candidate changes are limited to bug fixes, compatibility fixes, localization corrections, and release hygiene. The public API remains deliberately versioned and compatibility-conscious.
+
+
+## [0.1.0-rc.1] - 2026-09-08
+
+### Release Candidate
+- Froze the 0.1.0 feature set after the alpha.31 architecture and regression review.
+- Promoted the stable runtime paths, public API v1.0, schema v3, Scene Emitter workflow, Quick Control, all four track types, and JSON import/export to the first release candidate.
+- Added `API.md` as the integration contract for optional consumers such as Weather Forge, Atmosphere Forge, Region Forge, and other Foundry modules.
+- Updated README and package metadata for release-candidate status.
+
+### Quality
+- Release candidate is based on the manually regression-tested alpha.31 build.
+- Full automated validation and test suite must pass before packaging.
+- No new features are accepted between rc.1 and 0.1.0; only release-blocking fixes and release hygiene changes are in scope.
 
 ## [0.1.0-alpha.31] - 2026-09-08
 
@@ -75,7 +87,7 @@ versioned and compatibility-conscious.
 - Scene Emitter flag schema increased to version 3. Existing emitters remain compatible and default to **Ignore**.
 - Silent AmbientSound proxies enable Foundry wall constraints only when the emitter uses Attenuate or Block mode.
 
-## 0.1.0-alpha.25
+## [0.1.0-alpha.25] - 2026-09-08
 
 - Replaced the HTML/DOM Scene-emitter marker overlay with native PIXI markers attached directly to Foundry VTT's `InterfaceCanvasGroup`.
 - Emitter markers now share the exact Scene transform used by Foundry placeables, preventing marker drift while zooming or panning.
