@@ -80,7 +80,8 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
       "import-export-v1",
       "states-v1",
       "state-discovery-v1",
-      "semantic-state-control-v1"
+      "semantic-state-control-v1",
+      "context-states-v1"
     ]),
 
     isReady: () => Boolean(getService()),
@@ -89,6 +90,7 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
     getAmbience: (id) => service().getAmbience(id),
     getAmbiencesByKey: (key) => service().getAmbiencesByKey(key),
     getStateCatalog: () => service().getStateCatalog(),
+    getContextStates: () => service().getContextStates(),
     getState: () => service().getState(),
     upsertAmbience: (ambience) => service().upsertAmbience(ambience),
     deleteAmbience: (id) => service().deleteAmbience(id),
@@ -196,6 +198,23 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
 
     clearStateForActiveAmbiences: ({ group, owner = null, durationMs = null, broadcast = true } = {}) =>
       clearStateForIds(activeCandidateIds(), group, { owner, durationMs, broadcast }),
+
+    setContextState: ({ group, state, owner = null, durationMs = null, broadcast = true } = {}) =>
+      executeSynchronized(service(), {
+        command: COMMANDS.CONTEXT_STATE,
+        group,
+        state,
+        owner,
+        durationMs
+      }, { broadcast }),
+
+    clearContextState: ({ group, owner = null, durationMs = null, broadcast = true } = {}) =>
+      executeSynchronized(service(), {
+        command: COMMANDS.CLEAR_CONTEXT_STATE,
+        group,
+        owner,
+        durationMs
+      }, { broadcast }),
 
     previewAudio: (track) => service().previewAudio(track),
     previewLoop: (track) => service().previewLoop(track),

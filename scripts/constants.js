@@ -1,6 +1,6 @@
 export const MODULE_ID = "ambience-forge";
 export const MODULE_TITLE = "Ambience Forge";
-export const API_VERSION = "1.2";
+export const API_VERSION = "1.3";
 export const SCHEMA_VERSION = 5;
 export const SOCKET_NAME = `module.${MODULE_ID}`;
 export const SETTING_AMBIENCES = "ambiences";

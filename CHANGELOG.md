@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0-alpha.4] - 2026-09-08
+
+### Added
+- Persistent external semantic context through `setContextState()`, `clearContextState()`, and `getContextStates()`.
+- `context-states-v1` capability and public API version 1.3.
+- Context synchronization through the Ambience Forge socket so provider state is consistent across clients.
+- Compatible ambiences started or introduced after a context update inherit the current provider state automatically.
+
+### Changed
+- Forge Suite integration guidance now recommends persistent context for long-lived providers such as Weather Forge and Calendar Forge, while keeping active-only state commands for deliberately scoped events.
+
+
 ## [0.2.0-alpha.3] - 2026-09-08
 
 ### Added

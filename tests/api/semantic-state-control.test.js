@@ -95,3 +95,42 @@ test("active semantic state control includes enabled scene emitter compositions"
   assert.deepEqual(situationIds, ["tavern"]);
   assert.deepEqual(service.getDesiredStateSelections("tavern"), { situation: "combat" });
 });
+
+test("context state applies to compatible active and future compositions", async () => {
+  const service = await setup();
+  const api = createPublicApi({ getService: () => service, getModuleVersion: () => "test" });
+
+  const ids = await api.setContextState({
+    group: "weather",
+    state: "storm",
+    owner: "weather-forge",
+    broadcast: false
+  });
+
+  assert.deepEqual(ids, ["forest-a"]);
+  assert.deepEqual(api.getContextStates(), {
+    weather: { state: "storm", owner: "weather-forge" }
+  });
+
+  await service.playAmbience("forest-a");
+  assert.deepEqual(service.getState().ambienceStates["forest-a"], { weather: "storm" });
+
+  await service.upsertAmbience(composition("forest-c", "forest", "weather", "storm"));
+  await service.playAmbience("forest-c");
+  assert.deepEqual(service.getState().ambienceStates["forest-c"], { weather: "storm" });
+});
+
+test("context state clear respects owner and does not erase later manual overrides", async () => {
+  const service = await setup();
+  const api = createPublicApi({ getService: () => service, getModuleVersion: () => "test" });
+
+  await api.setContextState({ group: "weather", state: "storm", owner: "weather-forge", broadcast: false });
+  assert.equal(await api.clearContextState({ group: "weather", owner: "other-module", broadcast: false }), false);
+  assert.deepEqual(api.getContextStates(), { weather: { state: "storm", owner: "weather-forge" } });
+
+  await service.setState("forest-a", "weather", "storm", { owner: null });
+  const cleared = await api.clearContextState({ group: "weather", owner: "weather-forge", broadcast: false });
+  assert.deepEqual(cleared, []);
+  assert.deepEqual(api.getContextStates(), {});
+  assert.deepEqual(service.getDesiredStateSelections("forest-a"), { weather: "storm" });
+});

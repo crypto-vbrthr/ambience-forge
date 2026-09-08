@@ -21,11 +21,11 @@ The module is intentionally optional infrastructure. Consumers should continue t
 
 ## Versioning and capabilities
 
-For Ambience Forge 0.2.0-alpha.3:
+For Ambience Forge 0.2.0-alpha.4:
 
 ```js
-api.version; // "1.2"
-api.getModuleVersion(); // "0.2.0-alpha.3"
+api.version; // "1.3"
+api.getModuleVersion(); // "0.2.0-alpha.4"
 api.capabilities; // frozen array of supported capability strings
 ```
 
@@ -58,6 +58,7 @@ Current capabilities:
 - `states-v1`
 - `state-discovery-v1`
 - `semantic-state-control-v1`
+- `context-states-v1`
 
 ## Ambience library
 
@@ -201,6 +202,32 @@ await api.clearStateForActiveAmbiences({
 ```
 
 All semantic setters return the list of targeted Ambience IDs. They synchronize by default and accept the same `owner`, `durationMs`, and `broadcast` options as the lower-level state methods.
+
+### Persistent external context
+
+Environmental providers such as Weather Forge should usually use a persistent context state rather than targeting only compositions that are active at the moment of the update.
+
+```js
+await api.setContextState({
+  group: "weather",
+  state: "rain",
+  owner: "pf2e-weather-forge"
+});
+```
+
+Ambience Forge remembers the semantic context for the current session, applies it immediately to all compatible compositions, and also applies it when a compatible composition is started or introduced later. This solves the common case where the weather changes before a forest, tavern, or other ambience is started.
+
+```js
+api.getContextStates();
+// { weather: { state: "rain", owner: "pf2e-weather-forge" } }
+
+await api.clearContextState({
+  group: "weather",
+  owner: "pf2e-weather-forge"
+});
+```
+
+Context ownership protects cleanup from unrelated callers. A clear request with a different owner is ignored. Per-composition manual changes remain possible and can temporarily override the current context until the provider publishes a new context state. Context is runtime/session state rather than exported composition data; provider modules should re-publish their current state after `ambienceForgeReady` or Foundry `ready`.
 
 See [`FORGE_SUITE_INTEGRATION.md`](FORGE_SUITE_INTEGRATION.md) for the recommended Forge Suite key conventions and responsibility boundaries.
 

@@ -175,41 +175,33 @@ await api.clearStateByKey({
 });
 ```
 
-## Active compatible compositions
+## Persistent provider context
 
-Most environmental integrations should not need to know which composition is currently running.
+Long-lived environmental providers should normally publish persistent context instead of addressing only the ambiences that happen to be active at that instant.
 
-Weather Forge can simply announce:
+Weather Forge can announce:
 
 ```js
-await api.setStateForActiveAmbiences({
+await api.setContextState({
   group: "weather",
   state: "storm",
-  owner: "weather-forge"
+  owner: "pf2e-weather-forge"
 });
 ```
 
-Ambience Forge applies that state to compatible compositions that are either globally playing or referenced by enabled Scene Emitters on the current Scene. Compositions that do not expose `weather / storm` are ignored.
+Ambience Forge applies the state to compatible compositions immediately and remembers it for compatible compositions started later. Compositions without `weather / storm` simply ignore the context. Provider modules should re-publish their current state when Ambience Forge becomes ready.
 
-The same model works for Calendar Forge:
+The same model is appropriate for Calendar Forge:
 
 ```js
-await api.setStateForActiveAmbiences({
+await api.setContextState({
   group: "time-of-day",
   state: "night",
   owner: "calendar-forge"
 });
 ```
 
-And Encounter Forge:
-
-```js
-await api.setStateForActiveAmbiences({
-  group: "situation",
-  state: "combat",
-  owner: "encounter-forge"
-});
-```
+Short-lived, explicitly scoped actions may still use `setStateForActiveAmbiences()`. For example, an encounter module may choose to affect only the ambiences relevant at the moment combat starts.
 
 ## User-defined mapping
 

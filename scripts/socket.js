@@ -11,6 +11,8 @@ export const COMMANDS = Object.freeze({
   TRACK_INTENSITY: "track-intensity",
   STATE: "state",
   CLEAR_STATE: "clear-state",
+  CONTEXT_STATE: "context-state",
+  CLEAR_CONTEXT_STATE: "clear-context-state",
   STOP_ALL: "stop-all"
 });
 
@@ -52,6 +54,10 @@ export async function executeCommand(service, message) {
     case COMMANDS.CLEAR_STATE:
       if (message.ambience) await service.syncAmbienceDefinition(message.ambience);
       return service.clearState(message.ambienceId, message.group, { owner: message.owner, durationMs: message.durationMs });
+    case COMMANDS.CONTEXT_STATE:
+      return service.setContextState(message.group, message.state, { owner: message.owner, durationMs: message.durationMs });
+    case COMMANDS.CLEAR_CONTEXT_STATE:
+      return service.clearContextState(message.group, { owner: message.owner, durationMs: message.durationMs });
     case COMMANDS.STOP_ALL:
       return service.stopAll();
     default:

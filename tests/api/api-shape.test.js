@@ -10,7 +10,7 @@ const source = fs.readFileSync(path.resolve(here, "../../scripts/api/public-api.
 test("public API keeps the agreed integration surface", () => {
   for (const method of [
     "isReady", "getAmbiences", "getAmbience", "getState", "exportAmbience", "importAmbience", "playAmbience", "stopAmbience",
-    "requestAmbience", "releaseAmbience", "setMasterVolume", "setTrackVolume", "setTrackActive", "setTrackIntensity", "setState", "clearState", "getAmbiencesByKey", "getStateCatalog", "setStateByKey", "clearStateByKey", "setStateForActiveAmbiences", "clearStateForActiveAmbiences", "previewAudio", "previewLoop", "previewRandom", "previewSequence", "previewIntensity", "setPreviewIntensity", "stopPreview", "getSceneEmitters", "getSceneEmitter", "createSceneEmitter", "updateSceneEmitter", "setSceneEmitterEnabled", "deleteSceneEmitter", "previewSceneEmitter", "stopSceneEmitterPreview", "stopAll"
+    "requestAmbience", "releaseAmbience", "setMasterVolume", "setTrackVolume", "setTrackActive", "setTrackIntensity", "setState", "clearState", "getAmbiencesByKey", "getStateCatalog", "setStateByKey", "clearStateByKey", "setStateForActiveAmbiences", "clearStateForActiveAmbiences", "getContextStates", "setContextState", "clearContextState", "previewAudio", "previewLoop", "previewRandom", "previewSequence", "previewIntensity", "setPreviewIntensity", "stopPreview", "getSceneEmitters", "getSceneEmitter", "createSceneEmitter", "updateSceneEmitter", "setSceneEmitterEnabled", "deleteSceneEmitter", "previewSceneEmitter", "stopSceneEmitterPreview", "stopAll"
   ]) {
     assert.match(source, new RegExp(`\\b${method}\\b`));
   }
@@ -20,4 +20,5 @@ test("public API keeps the agreed integration surface", () => {
 test("semantic state discovery capabilities are advertised", () => {
   assert.match(source, /state-discovery-v1/);
   assert.match(source, /semantic-state-control-v1/);
+  assert.match(source, /context-states-v1/);
 });

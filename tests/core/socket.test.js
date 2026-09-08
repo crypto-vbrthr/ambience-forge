@@ -105,3 +105,22 @@ test("state socket command synchronizes an embedded ambience definition before a
   assert.deepEqual(calls[0], ["sync", ambience]);
   assert.deepEqual(calls[1], ["state", "forest", "weather", "storm", { owner: "weather-forge", durationMs: undefined }]);
 });
+
+
+test("context socket commands persist semantic context through the service", async () => {
+  const calls = [];
+  const service = {
+    async setContextState(group, state, options) { calls.push(["set-context", group, state, options]); return ["forest"]; },
+    async clearContextState(group, options) { calls.push(["clear-context", group, options]); return ["forest"]; }
+  };
+  assert.deepEqual(await executeCommand(service, {
+    command: COMMANDS.CONTEXT_STATE, group: "weather", state: "rain", owner: "weather-forge", durationMs: 1500
+  }), ["forest"]);
+  assert.deepEqual(await executeCommand(service, {
+    command: COMMANDS.CLEAR_CONTEXT_STATE, group: "weather", owner: "weather-forge", durationMs: 500
+  }), ["forest"]);
+  assert.deepEqual(calls, [
+    ["set-context", "weather", "rain", { owner: "weather-forge", durationMs: 1500 }],
+    ["clear-context", "weather", { owner: "weather-forge", durationMs: 500 }]
+  ]);
+});
