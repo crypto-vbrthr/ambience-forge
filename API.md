@@ -21,11 +21,11 @@ The module is intentionally optional infrastructure. Consumers should continue t
 
 ## Versioning and capabilities
 
-For Ambience Forge 0.2.0-alpha.2:
+For Ambience Forge 0.2.0-alpha.3:
 
 ```js
-api.version; // "1.1"
-api.getModuleVersion(); // "0.2.0-alpha.2"
+api.version; // "1.2"
+api.getModuleVersion(); // "0.2.0-alpha.3"
 api.capabilities; // frozen array of supported capability strings
 ```
 
@@ -56,12 +56,16 @@ Current capabilities:
 - `scene-emitter-obstruction-v1`
 - `import-export-v1`
 - `states-v1`
+- `state-discovery-v1`
+- `semantic-state-control-v1`
 
 ## Ambience library
 
 ```js
 api.getAmbiences();
 api.getAmbience(id);
+api.getAmbiencesByKey("forest");
+api.getStateCatalog();
 api.getState();
 
 await api.upsertAmbience(ambience);
@@ -145,6 +149,61 @@ Volume factors from simultaneously active state groups multiply. For example, a 
 
 `getState()` exposes active state selections under `ambienceStates` using group/state keys and the most recent state owner under `ambienceStateOwners`. `setState()` and `clearState()` accept optional `durationMs` and `broadcast` options in addition to `owner`.
 
+### Semantic discovery and key-based control
+
+Compositions also have a stable semantic `key`, just like state groups and states. The editor can derive it automatically from the composition name or the user can supply a stable integration key such as `forest`, `tavern`, or `dungeon`.
+
+Discover available mappings without reading private data:
+
+```js
+const catalog = api.getStateCatalog();
+// { compositions: [{ id, key, name, groups: [{ id, key, name, states: [...] }] }] }
+
+const forests = api.getAmbiencesByKey("forest");
+```
+
+Target a semantic composition key rather than a world-specific ID:
+
+```js
+await api.setStateByKey({
+  ambience: "forest",
+  group: "weather",
+  state: "storm",
+  owner: "weather-forge"
+});
+
+await api.clearStateByKey({
+  ambience: "forest",
+  group: "weather",
+  owner: "weather-forge"
+});
+```
+
+Apply a state to every currently relevant compatible composition:
+
+```js
+await api.setStateForActiveAmbiences({
+  group: "weather",
+  state: "storm",
+  owner: "weather-forge"
+});
+```
+
+For this method, "active" includes globally playing Ambiences and compositions referenced by enabled Scene Emitters on the current Scene. Compositions without the requested group/state are ignored. This lets Weather Forge announce `weather = storm` without knowing how each active composition implements storm audio.
+
+Clear only state selections still owned by the caller:
+
+```js
+await api.clearStateForActiveAmbiences({
+  group: "weather",
+  owner: "weather-forge"
+});
+```
+
+All semantic setters return the list of targeted Ambience IDs. They synchronize by default and accept the same `owner`, `durationMs`, and `broadcast` options as the lower-level state methods.
+
+See [`FORGE_SUITE_INTEGRATION.md`](FORGE_SUITE_INTEGRATION.md) for the recommended Forge Suite key conventions and responsibility boundaries.
+
 ## Preview API
 
 Preview methods are intended for local editing and tooling rather than synchronized session playback:
@@ -212,4 +271,4 @@ Hooks.once("ambienceForgeReady", async (api) => {
 
 ## Compatibility promise for API v1.x
 
-During the 0.1.0 release-candidate cycle, the module feature set is frozen. The 1.x public API is treated as an integration contract. API 1.1 extends 1.0 with the optional `states-v1` capability and does not remove the 1.0 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
+During the 0.1.0 release-candidate cycle, the module feature set is frozen. The 1.x public API is treated as an integration contract. API 1.2 extends 1.1 with semantic composition keys, state discovery, and semantic state-control capabilities and does not remove the 1.0 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.

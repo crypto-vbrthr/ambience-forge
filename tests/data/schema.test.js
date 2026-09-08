@@ -72,3 +72,12 @@ test("state group keys are unique across a composition and state keys within a g
   assert.ok(errors.some((error) => error.startsWith("stateGroup.keyDuplicate:weather")));
   assert.ok(errors.some((error) => error.startsWith("state.keyDuplicate:weather:rain")));
 });
+
+
+test("composition API keys derive from the name and preserve explicit stable keys", () => {
+  const derived = normalizeAmbience({ name: "Silberwald" });
+  const explicit = normalizeAmbience({ name: "Silberwald", key: "forest" });
+  assert.equal(derived.key, "silberwald");
+  assert.equal(explicit.key, "forest");
+  assert.deepEqual(validateAmbience(explicit), []);
+});

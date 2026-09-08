@@ -2,7 +2,7 @@
 
 Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finished audio assets. It controls **what plays, when it plays, how loudly it plays, and which layers run in parallel**. It intentionally does not edit audio or apply EQ, reverb, filters, pitch changes, or other sound processing.
 
-## 0.2.0-alpha.2 feature set
+## 0.2.0-alpha.3 feature set
 
 - Layered Ambience compositions with saved master volume.
 - **Audio Tracks** for one-shot playback or seamless buffered Web Audio looping. Long one-shots use Foundry's streaming-capable `Sound` path; repeating ambience uses direct buffered Web Audio.
@@ -18,7 +18,7 @@ Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finishe
 - Automated Node test suite and validation checks.
 - MIT License, maintained `CHANGELOG.md`, and a documented versioned public API.
 
-Ambience Forge 0.2.0-alpha.2 begins the next development line on top of the stable 0.1.0 foundation. The new state system is intentionally integration-first so modules such as Weather Forge or Calendar Forge can control the same composition without duplicating audio setups.
+Ambience Forge 0.2.0-alpha.3 continues the next development line on top of the stable 0.1.0 foundation. The new state system is intentionally integration-first so modules such as Weather Forge or Calendar Forge can control the same composition without duplicating audio setups.
 
 ## Audio philosophy
 
@@ -26,7 +26,7 @@ Prepare sound files externally with the editor or audio tool of your choice. Amb
 
 ## Public API
 
-The public API is versioned independently from the module release. Ambience Forge 0.2.0-alpha.2 exposes API version `1.1`. See [`API.md`](API.md) for the complete integration contract.
+The public API is versioned independently from the module release. Ambience Forge 0.2.0-alpha.3 exposes API version `1.2`. See [`API.md`](API.md) for the complete integration contract.
 
 
 Other modules may access the versioned API through:
@@ -40,6 +40,8 @@ Important API areas include:
 ```js
 ambienceForge.getAmbiences();
 ambienceForge.getAmbience(id);
+ambienceForge.getAmbiencesByKey("forest");
+ambienceForge.getStateCatalog();
 ambienceForge.playAmbience(id);
 ambienceForge.stopAmbience(id);
 ambienceForge.requestAmbience(id, { owner: "another-module" });
@@ -53,6 +55,19 @@ ambienceForge.setTrackIntensity(id, trackId, 0.75);
 ambienceForge.setState(id, "weather", "storm", { owner: "weather-forge" });
 ambienceForge.setState(id, "time-of-day", "night", { owner: "calendar-forge" });
 
+await ambienceForge.setStateByKey({
+  ambience: "forest",
+  group: "weather",
+  state: "storm",
+  owner: "weather-forge"
+});
+
+await ambienceForge.setStateForActiveAmbiences({
+  group: "time-of-day",
+  state: "night",
+  owner: "calendar-forge"
+});
+
 const exported = ambienceForge.exportAmbience(id);
 const imported = await ambienceForge.importAmbience(exported);
 ```
@@ -60,6 +75,22 @@ const imported = await ambienceForge.importAmbience(exported);
 Scene-emitter methods are also available through the same API. Consumers should check `api.capabilities` rather than depending on private implementation details.
 
 Ambience Forge fires `ambienceForgeReady` when its public API is ready for integrations.
+
+## Semantic integration keys
+
+Compositions, state groups, and states may expose stable technical keys. Display names can be localized or renamed without breaking integrations. A typical Forge Suite mapping is:
+
+```text
+Composition: Silberwald  -> forest
+Group: Wetter            -> weather
+State: Gewitter          -> storm
+```
+
+Recommended Forge Suite conventions include `weather`, `time-of-day`, and `situation` groups with short state keys such as `rain`, `storm`, `night`, `calm`, or `combat`. These are conventions rather than requirements; integrations should prefer `getStateCatalog()` and user-configurable mappings over hard-coded assumptions.
+
+`setStateForActiveAmbiences()` applies a semantic state to compatible compositions that are currently playing or referenced by enabled Scene Emitters on the active Scene. Compositions that do not expose the requested group/state are ignored.
+
+A standalone Markdown copy of the Forge Suite integration convention is included as [`FORGE_SUITE_INTEGRATION.md`](FORGE_SUITE_INTEGRATION.md) for use in the central Forge Suite repository.
 
 ## Optional integration model
 

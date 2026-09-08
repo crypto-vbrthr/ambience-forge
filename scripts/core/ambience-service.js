@@ -106,6 +106,55 @@ export class AmbienceService {
     return cloneData(this.ambiences.get(id) ?? null);
   }
 
+  getAmbiencesByKey(key) {
+    const value = String(key ?? "").trim();
+    if (!value) return [];
+    return [...this.ambiences.values()]
+      .filter((ambience) => ambience.key === value)
+      .map(cloneData);
+  }
+
+  getActiveAmbienceIds() {
+    return [...this.runtimes.keys()];
+  }
+
+  getCompatibleAmbienceIds(groupRef, stateRef = null, { ambienceIds = null } = {}) {
+    const allowed = ambienceIds == null ? null : new Set([...ambienceIds].map(String));
+    const ids = [];
+    for (const ambience of this.ambiences.values()) {
+      if (allowed && !allowed.has(ambience.id)) continue;
+      const group = findStateGroup(ambience, groupRef);
+      if (!group) continue;
+      if (stateRef != null && stateRef !== "" && !findAmbienceState(group, stateRef)) continue;
+      ids.push(ambience.id);
+    }
+    return ids;
+  }
+
+  getStateCatalog({ ambienceIds = null } = {}) {
+    const allowed = ambienceIds == null ? null : new Set([...ambienceIds].map(String));
+    const compositions = [...this.ambiences.values()]
+      .filter((ambience) => !allowed || allowed.has(ambience.id))
+      .map((ambience) => ({
+        id: ambience.id,
+        key: ambience.key,
+        name: ambience.name,
+        groups: (ambience.stateGroups ?? []).map((group) => ({
+          id: group.id,
+          key: group.key,
+          name: group.name,
+          defaultStateId: group.defaultStateId ?? null,
+          states: (group.states ?? []).map((state) => ({
+            id: state.id,
+            key: state.key,
+            name: state.name
+          }))
+        }))
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return { compositions: cloneData(compositions) };
+  }
+
   getState() {
     return {
       activeAmbienceIds: [...this.runtimes.keys()],

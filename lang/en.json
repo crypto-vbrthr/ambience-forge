@@ -251,5 +251,7 @@
   "AMBIENCE_FORGE.TrackType.random": "Random",
   "AMBIENCE_FORGE.TrackType.sequence": "Sequence",
   "AMBIENCE_FORGE.States.KeyOptional": "API key (optional)",
-  "AMBIENCE_FORGE.States.Track": "Track"
+  "AMBIENCE_FORGE.States.Track": "Track",
+  "AMBIENCE_FORGE.Editor.KeyOptional": "API key (optional)",
+  "AMBIENCE_FORGE.Editor.KeyHint": "Stable technical key for integrations and macros. Leave blank to derive it automatically from the composition name, for example forest or tavern."
 }

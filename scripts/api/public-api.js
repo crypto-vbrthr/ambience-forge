@@ -14,6 +14,51 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
     return value;
   };
 
+  const activeCandidateIds = () => {
+    const ids = new Set(service().getActiveAmbienceIds?.() ?? service().getState().activeAmbienceIds ?? []);
+    const emitters = getEmitterService()?.getEmitters?.() ?? [];
+    for (const emitter of emitters) {
+      if (emitter?.enabled === false || !emitter?.ambienceId) continue;
+      ids.add(String(emitter.ambienceId));
+    }
+    return [...ids];
+  };
+
+  const applyStateToIds = async (ids, group, state, { owner = null, durationMs = null, broadcast = true } = {}) => {
+    const value = service();
+    const compatible = value.getCompatibleAmbienceIds(group, state, { ambienceIds: ids });
+    for (const ambienceId of compatible) {
+      await executeSynchronized(value, {
+        command: COMMANDS.STATE,
+        ambienceId,
+        ambience: value.getAmbience(ambienceId),
+        group,
+        state,
+        owner,
+        durationMs
+      }, { broadcast });
+    }
+    return compatible;
+  };
+
+  const clearStateForIds = async (ids, group, { owner = null, durationMs = null, broadcast = true } = {}) => {
+    const value = service();
+    const compatible = value.getCompatibleAmbienceIds(group, null, { ambienceIds: ids });
+    const cleared = [];
+    for (const ambienceId of compatible) {
+      const result = await executeSynchronized(value, {
+        command: COMMANDS.CLEAR_STATE,
+        ambienceId,
+        ambience: value.getAmbience(ambienceId),
+        group,
+        owner,
+        durationMs
+      }, { broadcast });
+      if (result !== false) cleared.push(ambienceId);
+    }
+    return cleared;
+  };
+
   return Object.freeze({
     version: API_VERSION,
     capabilities: Object.freeze([
@@ -33,13 +78,17 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
       "scene-emitter-markers-v1",
       "scene-emitter-obstruction-v1",
       "import-export-v1",
-      "states-v1"
+      "states-v1",
+      "state-discovery-v1",
+      "semantic-state-control-v1"
     ]),
 
     isReady: () => Boolean(getService()),
     getModuleVersion: () => getModuleVersion(),
     getAmbiences: () => service().getAmbiences(),
     getAmbience: (id) => service().getAmbience(id),
+    getAmbiencesByKey: (key) => service().getAmbiencesByKey(key),
+    getStateCatalog: () => service().getStateCatalog(),
     getState: () => service().getState(),
     upsertAmbience: (ambience) => service().upsertAmbience(ambience),
     deleteAmbience: (id) => service().deleteAmbience(id),
@@ -129,6 +178,24 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
         durationMs
       }, { broadcast });
     },
+
+    setStateByKey: async ({ ambience, group, state, owner = null, durationMs = null, broadcast = true } = {}) => {
+      const matches = service().getAmbiencesByKey(ambience);
+      if (!matches.length) return [];
+      return applyStateToIds(matches.map((entry) => entry.id), group, state, { owner, durationMs, broadcast });
+    },
+
+    clearStateByKey: async ({ ambience, group, owner = null, durationMs = null, broadcast = true } = {}) => {
+      const matches = service().getAmbiencesByKey(ambience);
+      if (!matches.length) return [];
+      return clearStateForIds(matches.map((entry) => entry.id), group, { owner, durationMs, broadcast });
+    },
+
+    setStateForActiveAmbiences: ({ group, state, owner = null, durationMs = null, broadcast = true } = {}) =>
+      applyStateToIds(activeCandidateIds(), group, state, { owner, durationMs, broadcast }),
+
+    clearStateForActiveAmbiences: ({ group, owner = null, durationMs = null, broadcast = true } = {}) =>
+      clearStateForIds(activeCandidateIds(), group, { owner, durationMs, broadcast }),
 
     previewAudio: (track) => service().previewAudio(track),
     previewLoop: (track) => service().previewLoop(track),

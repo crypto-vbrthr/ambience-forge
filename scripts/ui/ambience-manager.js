@@ -261,6 +261,7 @@ function editorContent(ambience) {
   root.append(wrapper);
 
   wrapper.append(field("AMBIENCE_FORGE.Editor.Name", input("name", ambience?.name ?? "", { placeholder: game.i18n.localize("AMBIENCE_FORGE.Editor.NamePlaceholder") })));
+  wrapper.append(field("AMBIENCE_FORGE.Editor.KeyOptional", input("key", ambience?.key ?? "", { placeholder: "forest" }), "AMBIENCE_FORGE.Editor.KeyHint"));
   wrapper.append(field("AMBIENCE_FORGE.Editor.Description", textarea("description", ambience?.description ?? "")));
   wrapper.append(field("AMBIENCE_FORGE.Editor.MasterVolume", volumeSlider("masterVolumePercent", Math.round((ambience?.masterVolume ?? 1) * 100)), "AMBIENCE_FORGE.Editor.MasterVolumeHint"));
   wrapper.append(field(
@@ -301,6 +302,7 @@ function readEditorFromRoot(root, existing) {
   return {
     ...(existing ?? {}),
     name: String(value("name") ?? "").trim(),
+    key: String(value("key") ?? "").trim(),
     description: String(value("description") ?? ""),
     masterVolume: Math.min(100, Math.max(0, Number(value("masterVolumePercent") ?? 100) || 0)) / 100,
     transitionMs: milliseconds(value("transitionSeconds") ?? 3),
@@ -310,7 +312,7 @@ function readEditorFromRoot(root, existing) {
 
 export function resolveEditorTarget(api, ambienceId) {
   const id = String(ambienceId ?? "").trim();
-  if (!id) return { id: null, ambience: { name: "", description: "", masterVolume: 1, transitionMs: 3000, tracks: [] }, isNew: true };
+  if (!id) return { id: null, ambience: { name: "", key: "", description: "", masterVolume: 1, transitionMs: 3000, tracks: [], stateGroups: [] }, isNew: true };
   const ambience = api.getAmbience(id);
   if (!ambience) return null;
   return { id, ambience, isNew: false };

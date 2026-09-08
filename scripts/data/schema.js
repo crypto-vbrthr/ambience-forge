@@ -145,10 +145,12 @@ export function normalizeAmbience(input = {}, { idFactory = createId } = {}) {
   const stateGroups = Array.isArray(input.stateGroups)
     ? input.stateGroups.map((group) => normalizeStateGroup(group, { idFactory, validTrackIds }))
     : [];
+  const name = String(input.name || "");
   return {
     id: String(input.id || idFactory("ambience")),
     schemaVersion: SCHEMA_VERSION,
-    name: String(input.name || ""),
+    key: slugifyKey(input.key || name, "ambience"),
+    name,
     description: String(input.description || ""),
     masterVolume: clamp(input.masterVolume ?? 1, 0, 1),
     transitionMs: Math.max(0, Number(input.transitionMs ?? 3000) || 0),
@@ -161,6 +163,7 @@ export function validateAmbience(input) {
   const errors = [];
   if (!input || typeof input !== "object") return ["ambience.invalid"];
   if (!String(input.name || "").trim()) errors.push("ambience.nameRequired");
+  if (!String(input.key || "").trim()) errors.push("ambience.keyRequired");
   if (!Array.isArray(input.tracks)) errors.push("ambience.tracksInvalid");
 
   for (const track of Array.isArray(input.tracks) ? input.tracks : []) {

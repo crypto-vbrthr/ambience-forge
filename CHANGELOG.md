@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.0-alpha.3] - 2026-09-08
+
+### Added
+- Stable optional API keys for Ambience compositions, completing the semantic `composition / group / state` key hierarchy.
+- Public `getStateCatalog()` discovery API and `getAmbiencesByKey()` lookup for integration UIs and user-configurable mappings.
+- Public `setStateByKey()` / `clearStateByKey()` methods for composition-key based state control.
+- Public `setStateForActiveAmbiences()` / `clearStateForActiveAmbiences()` methods. Compatible globally playing compositions and enabled Scene Emitters on the active Scene can now react to semantic state announcements without the calling module knowing internal Ambience IDs.
+- `state-discovery-v1` and `semantic-state-control-v1` capabilities. Public API version increased compatibly from 1.1 to 1.2.
+- `FORGE_SUITE_INTEGRATION.md`, a copy-ready Markdown convention document for the central Forge Suite repository.
+
+### Changed
+- Data schema increased from 4 to 5. Existing compositions automatically derive a semantic key from their display name.
+- The Ambience editor now exposes an optional composition API key with automatic name-derived fallback.
+- README and API documentation now describe semantic discovery, recommended Forge Suite keys, owner-aware control, and user-defined mappings.
+
+### Tests
+- Added regression coverage for composition-key normalization, state catalog discovery, compatible-state lookup, semantic API surface, active Scene-Emitter targeting, UI key fields, version/schema migration, and integration documentation.
+
 ## [0.2.0-alpha.2] - 2026-09-08
 
 ### Changed

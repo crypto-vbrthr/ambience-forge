@@ -110,3 +110,10 @@ test("ambience editor exposes the state manager as a focused composition tool", 
   assert.match(source, /editorActionButton\("states"/);
   assert.match(source, /action === "states"/);
 });
+
+
+test("ambience editor exposes an optional stable composition API key", () => {
+  assert.match(source, /AMBIENCE_FORGE\.Editor\.KeyOptional/);
+  assert.match(source, /input\("key"/);
+  assert.match(source, /key: String\(value\("key"\)/);
+});
