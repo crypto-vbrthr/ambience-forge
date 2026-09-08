@@ -14,15 +14,23 @@ export class AmbienceRuntime {
   async start() {
     if (this.running) return;
     this.running = true;
-    for (const track of this.ambience.tracks.filter((candidate) => candidate.enabled !== false)) {
-      const controller = createTrackController({
-        track,
-        backend: this.backend,
-        scheduler: this.schedulerFactory(track),
-        masterVolume: this.masterVolume
-      });
-      this.controllers.set(track.id, controller);
-      await controller.start();
+    try {
+      for (const track of this.ambience.tracks.filter((candidate) => candidate.enabled !== false)) {
+        const controller = createTrackController({
+          track,
+          backend: this.backend,
+          scheduler: this.schedulerFactory(track),
+          masterVolume: this.masterVolume
+        });
+        this.controllers.set(track.id, controller);
+        await controller.start();
+      }
+    } catch (error) {
+      // Starting a composition is transactional from the caller's point of
+      // view. If one track fails, stop anything that already started so no
+      // orphaned ambience remains audible.
+      try { await this.stop(); } catch {}
+      throw error;
     }
   }
 
@@ -61,8 +69,14 @@ export class AmbienceRuntime {
     if (!controller) return false;
     const desired = Boolean(active);
     if (controller.running === desired) return true;
-    if (desired) await controller.start();
-    else await controller.stop();
+    if (desired) {
+      try {
+        await controller.start();
+      } catch (error) {
+        try { await controller.stop(); } catch {}
+        throw error;
+      }
+    } else await controller.stop();
     return true;
   }
 

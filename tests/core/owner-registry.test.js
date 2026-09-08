@@ -9,3 +9,8 @@ test("owner registry only becomes empty after the final owner releases", () => {
   assert.deepEqual(registry.release("rain", "weather-forge"), { becameEmpty: false, count: 1 });
   assert.deepEqual(registry.release("rain", "region-forge"), { becameEmpty: true, count: 0 });
 });
+
+test("releasing an unknown owner request is a no-op rather than an empty transition", () => {
+  const registry = new OwnerRegistry();
+  assert.deepEqual(registry.release("rain", "weather-forge"), { becameEmpty: false, count: 0 });
+});

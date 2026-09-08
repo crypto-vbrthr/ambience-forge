@@ -27,10 +27,12 @@ export function registerSocketListener(getService) {
 export async function executeCommand(service, message) {
   switch (message.command) {
     case COMMANDS.PLAY:
+      if (message.ambience) await service.syncAmbienceDefinition(message.ambience);
       return service.playAmbience(message.ambienceId);
     case COMMANDS.STOP:
       return service.stopAmbience(message.ambienceId);
     case COMMANDS.REQUEST:
+      if (message.ambience) await service.syncAmbienceDefinition(message.ambience);
       return service.requestAmbience(message.ambienceId, message.owner);
     case COMMANDS.RELEASE:
       return service.releaseAmbience(message.ambienceId, message.owner);

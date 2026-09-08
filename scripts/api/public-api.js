@@ -45,21 +45,29 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
     exportAmbience: (id) => service().exportAmbience(id),
     importAmbience: (envelope) => service().importAmbience(envelope),
 
-    playAmbience: (ambienceId, options = {}) => executeSynchronized(service(), {
-      command: COMMANDS.PLAY,
-      ambienceId
-    }, options),
+    playAmbience: (ambienceId, options = {}) => {
+      const value = service();
+      return executeSynchronized(value, {
+        command: COMMANDS.PLAY,
+        ambienceId,
+        ambience: value.getAmbience(ambienceId)
+      }, options);
+    },
 
     stopAmbience: (ambienceId, options = {}) => executeSynchronized(service(), {
       command: COMMANDS.STOP,
       ambienceId
     }, options),
 
-    requestAmbience: (ambienceId, { owner, broadcast = true } = {}) => executeSynchronized(service(), {
-      command: COMMANDS.REQUEST,
-      ambienceId,
-      owner
-    }, { broadcast }),
+    requestAmbience: (ambienceId, { owner, broadcast = true } = {}) => {
+      const value = service();
+      return executeSynchronized(value, {
+        command: COMMANDS.REQUEST,
+        ambienceId,
+        ambience: value.getAmbience(ambienceId),
+        owner
+      }, { broadcast });
+    },
 
     releaseAmbience: (ambienceId, { owner, broadcast = true } = {}) => executeSynchronized(service(), {
       command: COMMANDS.RELEASE,

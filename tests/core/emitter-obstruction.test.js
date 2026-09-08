@@ -6,7 +6,7 @@ import {
   applyEmitterObstruction,
   normalizeEmitterData
 } from "../../scripts/scene/emitter-model.js";
-import { SceneEmitterService } from "../../scripts/scene/scene-emitter-service-alpha26.js";
+import { SceneEmitterService } from "../../scripts/scene/scene-emitter-service.js";
 import { FakeAudioBackend } from "../helpers/fake-audio-backend.js";
 
 function ambience() {

@@ -5,7 +5,9 @@ import { cloneData } from "../data/schema.js";
 import {
   EMITTER_FLAG,
   EMITTER_SCHEMA_VERSION,
+  EMITTER_OBSTRUCTION_MODES,
   SILENCE_PATH,
+  applyEmitterObstruction,
   computeEmitterGain,
   emitterDataFromDocument,
   getEmitterFlag,
@@ -64,6 +66,29 @@ function sceneSounds(scene) {
   return [];
 }
 
+function sourceTestsPoint(document, listener) {
+  const source = document?.object?.source;
+  if (!source?.testPoint) return null;
+  try {
+    const point = {
+      x: Number(listener?.x) || 0,
+      y: Number(listener?.y) || 0
+    };
+    if (Number.isFinite(listener?.elevation)) point.elevation = Number(listener.elevation);
+    return Boolean(source.testPoint(point));
+  } catch {
+    return null;
+  }
+}
+
+function prospectiveEmitterMode(document, changes = {}) {
+  const flatKey = `flags.${MODULE_ID}.${EMITTER_FLAG}`;
+  const pendingFlag = changes?.[flatKey] ?? changes?.flags?.[MODULE_ID]?.[EMITTER_FLAG];
+  return normalizeEmitterData({
+    obstructionMode: pendingFlag?.obstructionMode ?? getEmitterFlag(document)?.obstructionMode
+  }).obstructionMode;
+}
+
 export class SceneEmitterService {
   constructor({
     getAmbienceService,
@@ -72,7 +97,10 @@ export class SceneEmitterService {
     getListeners = null,
     setIntervalFn = globalThis.setInterval?.bind(globalThis),
     clearIntervalFn = globalThis.clearInterval?.bind(globalThis),
-    tickMs = 200
+    tickMs = 200,
+    retryMs = 5000,
+    nowFn = () => Date.now(),
+    onError = (error, context = {}) => console.error("ambience-forge | scene emitter playback failed", context, error)
   } = {}) {
     this.getAmbienceService = getAmbienceService;
     this.backend = backend;
@@ -82,8 +110,12 @@ export class SceneEmitterService {
     this.setIntervalFn = setIntervalFn;
     this.clearIntervalFn = clearIntervalFn;
     this.tickMs = tickMs;
+    this.retryMs = Math.max(this.tickMs, Number(retryMs) || 5000);
+    this.nowFn = nowFn;
+    this.onError = onError;
     this.scene = null;
     this.runtimes = new Map();
+    this.failures = new Map();
     this.timer = null;
     this.previewRuntime = null;
   }
@@ -105,7 +137,9 @@ export class SceneEmitterService {
     await this.deactivateScene();
     this.scene = scene ?? null;
     if (monitor && this.scene && this.setIntervalFn) {
-      this.timer = this.setIntervalFn(() => { void this.tick(); }, this.tickMs);
+      this.timer = this.setIntervalFn(() => {
+        void this.tick().catch((error) => this.#reportError(error, { phase: "tick" }));
+      }, this.tickMs);
     }
     return this.tick();
   }
@@ -115,6 +149,7 @@ export class SceneEmitterService {
     this.timer = null;
     const runtimes = [...this.runtimes.values()].map((entry) => entry.runtime);
     this.runtimes.clear();
+    this.failures.clear();
     await Promise.all(runtimes.map((runtime) => runtime.stop()));
     await this.stopPreview();
     this.scene = null;
@@ -150,14 +185,17 @@ export class SceneEmitterService {
       radius: emitter.radius,
       volume: emitter.volume,
       easing: emitter.easing,
-      walls: false,
+      walls: emitter.obstructionMode !== EMITTER_OBSTRUCTION_MODES.IGNORE,
       path: SILENCE_PATH,
       flags: {
         [MODULE_ID]: {
           [EMITTER_FLAG]: {
             schemaVersion: EMITTER_SCHEMA_VERSION,
             ambienceId: emitter.ambienceId,
-            name: emitter.name || ambience.name
+            name: emitter.name || ambience.name,
+            enabled: emitter.enabled !== false,
+            obstructionMode: emitter.obstructionMode,
+            obstructionAttenuation: emitter.obstructionAttenuation
           }
         }
       }
@@ -181,12 +219,15 @@ export class SceneEmitterService {
       radius: emitter.radius,
       volume: emitter.volume,
       easing: emitter.easing,
-      walls: false,
+      walls: emitter.obstructionMode !== EMITTER_OBSTRUCTION_MODES.IGNORE,
       path: SILENCE_PATH,
       [`flags.${MODULE_ID}.${EMITTER_FLAG}`]: {
         schemaVersion: EMITTER_SCHEMA_VERSION,
         ambienceId: emitter.ambienceId,
-        name: emitter.name || ambience.name
+        name: emitter.name || ambience.name,
+        enabled: emitter.enabled !== false,
+        obstructionMode: emitter.obstructionMode,
+        obstructionAttenuation: emitter.obstructionAttenuation
       }
     });
     await this.#restartEmitter(id);
@@ -201,8 +242,13 @@ export class SceneEmitterService {
       await entry.runtime.stop();
       this.runtimes.delete(id);
     }
+    this.failures.delete(id);
     if (scene?.deleteEmbeddedDocuments) await scene.deleteEmbeddedDocuments("AmbientSound", [id]);
     return true;
+  }
+
+  async setEmitterEnabled(id, enabled, scene = globalThis.canvas?.scene) {
+    return this.updateEmitter(id, { enabled: Boolean(enabled) }, scene);
   }
 
   async previewEmitter(id, scene = this.scene ?? globalThis.canvas?.scene) {
@@ -251,6 +297,10 @@ export class SceneEmitterService {
     for (const document of documents) {
       const emitter = emitterDataFromDocument(document);
       if (!emitter) continue;
+      if (emitter.enabled === false) {
+        await this.#stopEmitter(emitter.id);
+        continue;
+      }
       const ambience = ambienceService.getAmbience(emitter.ambienceId);
       if (!ambience) {
         await this.#stopEmitter(emitter.id);
@@ -258,7 +308,15 @@ export class SceneEmitterService {
       }
       let gain = 0;
       for (const listener of listeners) {
-        gain = Math.max(gain, computeEmitterGain({ emitter, listener, scene }));
+        const distanceGain = computeEmitterGain({ emitter, listener, scene });
+        if (!(distanceGain > 0)) continue;
+        let obstructed = false;
+        if (emitter.obstructionMode !== EMITTER_OBSTRUCTION_MODES.IGNORE) {
+          const audibleThroughNativeSource = sourceTestsPoint(document, listener);
+          obstructed = audibleThroughNativeSource === false;
+        }
+        const listenerGain = applyEmitterObstruction(distanceGain, emitter, obstructed);
+        gain = Math.max(gain, listenerGain);
       }
       const effectiveMaster = (ambience.masterVolume ?? 1) * gain;
       if (effectiveMaster <= 0.0001) {
@@ -266,20 +324,46 @@ export class SceneEmitterService {
         continue;
       }
       let entry = this.runtimes.get(emitter.id);
-      if (!entry || entry.ambienceId !== emitter.ambienceId) {
-        if (entry) await entry.runtime.stop();
-        const runtimeAmbience = cloneData(ambience);
-        runtimeAmbience.masterVolume = effectiveMaster;
-        const runtime = new AmbienceRuntime({
-          ambience: runtimeAmbience,
-          backend: this.backend,
-          schedulerFactory: this.schedulerFactory
+      const revision = ambienceService.getAmbienceRevision?.(emitter.ambienceId) ?? 0;
+      const failure = this.failures.get(emitter.id);
+      if (failure && (failure.ambienceId !== emitter.ambienceId || failure.revision !== revision)) {
+        this.failures.delete(emitter.id);
+      } else if (failure && this.nowFn() < failure.retryAt) {
+        continue;
+      }
+
+      try {
+        if (!entry || entry.ambienceId !== emitter.ambienceId || entry.revision !== revision) {
+          if (entry) {
+            await entry.runtime.stop();
+            this.runtimes.delete(emitter.id);
+          }
+          const runtimeAmbience = cloneData(ambience);
+          runtimeAmbience.masterVolume = effectiveMaster;
+          const runtime = new AmbienceRuntime({
+            ambience: runtimeAmbience,
+            backend: this.backend,
+            schedulerFactory: this.schedulerFactory
+          });
+          await runtime.start();
+          entry = { ambienceId: emitter.ambienceId, revision, runtime };
+          this.runtimes.set(emitter.id, entry);
+        } else {
+          await entry.runtime.setMasterVolume(effectiveMaster, { durationMs: this.tickMs });
+        }
+        this.failures.delete(emitter.id);
+      } catch (error) {
+        if (entry) {
+          try { await entry.runtime.stop(); } catch {}
+          this.runtimes.delete(emitter.id);
+        }
+        this.failures.set(emitter.id, {
+          ambienceId: emitter.ambienceId,
+          revision,
+          retryAt: this.nowFn() + this.retryMs,
+          error
         });
-        entry = { ambienceId: emitter.ambienceId, runtime };
-        this.runtimes.set(emitter.id, entry);
-        await runtime.start();
-      } else {
-        await entry.runtime.setMasterVolume(effectiveMaster, { durationMs: this.tickMs });
+        this.#reportError(error, { emitterId: emitter.id, ambienceId: emitter.ambienceId, retryMs: this.retryMs });
       }
     }
   }
@@ -292,13 +376,21 @@ export class SceneEmitterService {
   }
 
   async #restartEmitter(id) {
+    this.failures.delete(id);
     await this.#stopEmitter(id);
+  }
+
+  #reportError(error, context = {}) {
+    try { this.onError?.(error, context); } catch {}
   }
 
   enforceProxyPath(document, changes) {
     if (!isAmbienceEmitter(document)) return;
     if ("path" in changes && changes.path !== SILENCE_PATH) changes.path = SILENCE_PATH;
-    if ("walls" in changes && changes.walls !== false) changes.walls = false;
+    if ("walls" in changes) {
+      const mode = prospectiveEmitterMode(document, changes);
+      changes.walls = mode !== EMITTER_OBSTRUCTION_MODES.IGNORE;
+    }
   }
 }
 
@@ -323,6 +415,13 @@ export function registerEmitterHooks(getEmitterService) {
     Hooks.on(hook, () => {
       const service = getEmitterService();
       if (service) void service.tick();
+    });
+  }
+
+  for (const hook of ["createWall", "updateWall", "deleteWall"]) {
+    Hooks.on(hook, () => {
+      const service = getEmitterService();
+      if (service) globalThis.setTimeout?.(() => { void service.tick(); }, 0);
     });
   }
 

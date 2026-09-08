@@ -2,13 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const source = fs.readFileSync(new URL("../scripts/ui/quick-control-alpha19.js", import.meta.url), "utf8");
-const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha20.js", import.meta.url), "utf8");
+const source = fs.readFileSync(new URL("../scripts/ui/quick-control.js", import.meta.url), "utf8");
+const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls.js", import.meta.url), "utf8");
 
 test("Quick Control is a persistent ApplicationV2 and is exposed in Scene Controls", () => {
   assert.match(source, /const ApplicationV2 = foundry\.applications\.api\.ApplicationV2/);
   assert.match(source, /class AmbienceForgeQuickControlApp extends ApplicationV2/);
-  assert.match(controls, /quick-control-alpha19\.js/);
+  assert.match(controls, /quick-control\.js/);
   assert.match(controls, /quick: \{/);
   assert.match(controls, /onChange: \(\) => openQuickControl\(api\)/);
 });

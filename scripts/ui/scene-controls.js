@@ -1,14 +1,11 @@
 import { MODULE_ID } from "../constants.js";
 import { openAmbienceManager } from "./ambience-manager.js";
+import { openQuickControl } from "./quick-control.js";
+import { openEmitterManager } from "./emitter-manager.js";
 import { notifyStopped, openStatusDialog } from "./status-dialog.js";
 
 const ANCHOR_TOOL = "__ambience-forge-anchor";
 
-/**
- * Foundry's SceneControls expects a control with button-only tools to still
- * have a valid activeTool when it processes a button click. A hidden,
- * non-interactive anchor keeps that state valid without adding UI clutter.
- */
 function anchorTool() {
   return {
     name: ANCHOR_TOOL,
@@ -45,6 +42,22 @@ export function registerSceneControls(controls, api) {
         button: true,
         onChange: () => openAmbienceManager(api)
       },
+      quick: {
+        name: "quick",
+        title: "AMBIENCE_FORGE.Controls.Quick",
+        icon: "fa-solid fa-gauge-high",
+        order: 2,
+        button: true,
+        onChange: () => openQuickControl(api)
+      },
+      emitters: {
+        name: "emitters",
+        title: "AMBIENCE_FORGE.Controls.Emitters",
+        icon: "fa-solid fa-location-dot",
+        order: 4,
+        button: true,
+        onChange: () => openEmitterManager(api)
+      },
       status: {
         name: "status",
         title: "AMBIENCE_FORGE.Controls.Status",
@@ -73,6 +86,7 @@ export function registerSceneControls(controls, api) {
         button: true,
         onChange: async () => {
           await api.stopAll();
+          await api.stopSceneEmitterPreview();
           notifyStopped();
         }
       }

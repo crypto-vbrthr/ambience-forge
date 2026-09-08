@@ -1,9 +1,14 @@
 import { randomBetween } from "./random.js";
 
 export class RandomScheduler {
-  constructor({ random = Math.random, clock = globalThis } = {}) {
+  constructor({
+    random = Math.random,
+    clock = globalThis,
+    onError = (error) => console.error("ambience-forge | scheduled audio callback failed", error)
+  } = {}) {
     this.random = random;
     this.clock = clock;
+    this.onError = onError;
     this.handles = new Set();
   }
 
@@ -14,7 +19,11 @@ export class RandomScheduler {
   schedule(delayMs, callback) {
     const handle = this.clock.setTimeout(async () => {
       this.handles.delete(handle);
-      await callback();
+      try {
+        await callback();
+      } catch (error) {
+        this.onError?.(error);
+      }
     }, Math.max(0, delayMs));
     this.handles.add(handle);
     return handle;

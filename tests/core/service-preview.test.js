@@ -119,3 +119,81 @@ test("service state exposes live per-track volume and active state", async () =>
   assert.equal(service.getState().trackVolumes.a.t, 0.3);
   assert.equal(service.getState().trackActiveStates.a.t, false);
 });
+
+test("reloadFromStore refreshes changed definitions and restarts active ambience", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "old.ogg", repeat: true }] }]);
+  const changed = [];
+  const service = new AmbienceService({ store, backend, onLibraryChanged: async (ids) => changed.push(ids) });
+  await service.initialize();
+  const revisionBefore = service.getAmbienceRevision("a");
+  await service.playAmbience("a");
+
+  store.items = [{ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "new.ogg", repeat: true }] }];
+  const didChange = await service.reloadFromStore();
+
+  assert.equal(didChange, true);
+  assert.equal(service.getAmbience("a").tracks[0].source, "new.ogg");
+  assert.ok(service.getAmbienceRevision("a") > revisionBefore);
+  assert.deepEqual(service.getState().activeAmbienceIds, ["a"]);
+  assert.deepEqual(backend.events.filter((event) => event.type === "startLoop").map((event) => event.options.src), ["old.ogg", "new.ogg"]);
+  assert.deepEqual(changed, [["a"]]);
+});
+
+test("syncAmbienceDefinition updates an active client definition without persisting it", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "old.ogg", repeat: true }] }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+  await service.playAmbience("a");
+  const revisionBefore = service.getAmbienceRevision("a");
+
+  const didChange = await service.syncAmbienceDefinition({ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "socket-new.ogg", repeat: true }] });
+
+  assert.equal(didChange, true);
+  assert.equal(service.getAmbience("a").tracks[0].source, "socket-new.ogg");
+  assert.ok(service.getAmbienceRevision("a") > revisionBefore);
+  assert.equal(store.items[0].tracks[0].source, "old.ogg");
+  assert.deepEqual(backend.events.filter((event) => event.type === "startLoop").map((event) => event.options.src), ["old.ogg", "socket-new.ogg"]);
+});
+
+test("owner request and release do not stop an explicitly started ambience", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "rain.ogg", repeat: true, fadeOutMs: 0 }] }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+
+  await service.playAmbience("a");
+  await service.requestAmbience("a", "weather-forge");
+  await service.releaseAmbience("a", "weather-forge");
+
+  assert.deepEqual(service.getState().activeAmbienceIds, ["a"]);
+  assert.equal(backend.events.filter((event) => event.type === "stop").length, 0);
+});
+
+test("owner-only ambience stops after the final owner releases", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "rain.ogg", repeat: true, fadeOutMs: 0 }] }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+
+  assert.equal(await service.requestAmbience("a", "weather-forge"), 1);
+  assert.equal(await service.requestAmbience("a", "atmosphere-forge"), 2);
+  assert.equal(await service.releaseAmbience("a", "weather-forge"), 1);
+  assert.deepEqual(service.getState().activeAmbienceIds, ["a"]);
+  assert.equal(await service.releaseAmbience("a", "atmosphere-forge"), 0);
+  assert.deepEqual(service.getState().activeAmbienceIds, []);
+});
+
+test("explicit stop clears outstanding owner requests and runtime state", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{ id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "rain.ogg", repeat: true, fadeOutMs: 0 }] }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+
+  await service.requestAmbience("a", "weather-forge");
+  assert.deepEqual(service.getState().owners.a, ["weather-forge"]);
+  await service.stopAmbience("a");
+  assert.deepEqual(service.getState().activeAmbienceIds, []);
+  assert.equal(service.getState().owners.a, undefined);
+});

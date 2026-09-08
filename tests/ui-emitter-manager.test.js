@@ -2,13 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const manager = fs.readFileSync(new URL("../scripts/ui/emitter-manager-alpha22.js", import.meta.url), "utf8");
-const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha22.js", import.meta.url), "utf8");
-const service = fs.readFileSync(new URL("../scripts/scene/scene-emitter-service-alpha22.js", import.meta.url), "utf8");
-const overlay = fs.readFileSync(new URL("../scripts/ui/emitter-overlay-alpha28.js", import.meta.url), "utf8");
+const manager = fs.readFileSync(new URL("../scripts/ui/emitter-manager.js", import.meta.url), "utf8");
+const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls.js", import.meta.url), "utf8");
+const service = fs.readFileSync(new URL("../scripts/scene/scene-emitter-service.js", import.meta.url), "utf8");
+const overlay = fs.readFileSync(new URL("../scripts/ui/emitter-overlay.js", import.meta.url), "utf8");
 
 test("Scene Controls expose the Scene Emitter manager", () => {
-  assert.match(controls, /emitter-manager-alpha22\.js/);
+  assert.match(controls, /emitter-manager\.js/);
   assert.match(controls, /emitters: \{/);
   assert.match(controls, /onChange: \(\) => openEmitterManager\(api\)/);
 });
@@ -26,7 +26,7 @@ test("Scene emitters use Foundry AmbientSound documents as silent spatial proxie
   assert.match(service, /SILENCE_PATH/);
   assert.match(service, /radius: emitter\.radius/);
   assert.match(service, /easing: emitter\.easing/);
-  assert.match(service, /walls: false/);
+  assert.match(service, /walls: emitter\.obstructionMode !== EMITTER_OBSTRUCTION_MODES\.IGNORE/);
 });
 
 

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { normalizeAmbience } from "../../scripts/data/schema.js";
-import { SceneEmitterService } from "../../scripts/scene/scene-emitter-service-alpha22.js";
+import { SceneEmitterService } from "../../scripts/scene/scene-emitter-service.js";
 import { FakeAudioBackend } from "../helpers/fake-audio-backend.js";
 
 function emitterDocument() {
@@ -191,4 +191,139 @@ test("disabling a scene emitter stops its runtime while keeping the emitter docu
   } finally {
     delete globalThis.game;
   }
+});
+
+test("active scene emitter restarts when its ambience definition revision changes", async () => {
+  const backend = new FakeAudioBackend();
+  let revision = 1;
+  let source = "forest-old.ogg";
+  const ambienceService = {
+    getAmbience: () => normalizeAmbience({
+      id: "forest",
+      name: "Forest",
+      tracks: [{ id: "bed", name: "Bed", type: "audio", source, repeat: true, volume: 1, fadeOutMs: 0 }]
+    }),
+    getAmbienceRevision: () => revision
+  };
+  const scene = { grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  assert.equal(service.runtimes.get("e1")?.revision, 1);
+  source = "forest-new.ogg";
+  revision = 2;
+  await service.tick();
+
+  assert.equal(service.runtimes.get("e1")?.revision, 2);
+  assert.deepEqual(backend.events.filter((event) => event.type === "startLoop").map((event) => event.options.src), ["forest-old.ogg", "forest-new.ogg"]);
+  assert.ok(backend.events.some((event) => event.type === "stop"));
+});
+
+test("scene emitter playback failures back off instead of retrying every spatial tick", async () => {
+  let attempts = 0;
+  class FailingBackend extends FakeAudioBackend {
+    async startLoop(options) {
+      attempts += 1;
+      throw new Error(`missing audio: ${options.src}`);
+    }
+  }
+  const backend = new FailingBackend();
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    tracks: [{ id: "bed", name: "Bed", type: "audio", source: "missing.ogg", repeat: true, volume: 1 }]
+  });
+  const ambienceService = {
+    getAmbience: (id) => id === "forest" ? structuredClone(ambience) : null,
+    getAmbienceRevision: () => 1
+  };
+  const scene = { grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  let now = 1000;
+  const errors = [];
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null,
+    tickMs: 200,
+    retryMs: 5000,
+    nowFn: () => now,
+    onError: (error, context) => errors.push({ error, context })
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  assert.equal(attempts, 1);
+  assert.equal(errors.length, 1);
+  assert.equal(service.runtimes.size, 0);
+  assert.equal(service.failures.get("e1")?.retryAt, 6000);
+
+  // Many normal 200ms spatial ticks during the backoff window do not hit the
+  // broken source again and do not spam the error callback.
+  now = 1200;
+  await service.tick();
+  now = 3000;
+  await service.tick();
+  now = 5999;
+  await service.tick();
+  assert.equal(attempts, 1);
+  assert.equal(errors.length, 1);
+
+  // Once the retry window expires, playback is attempted again exactly once.
+  now = 6000;
+  await service.tick();
+  assert.equal(attempts, 2);
+  assert.equal(errors.length, 2);
+});
+
+test("scene emitter definition changes bypass a previous playback backoff", async () => {
+  let attempts = 0;
+  class RecoveringBackend extends FakeAudioBackend {
+    async startLoop(options) {
+      attempts += 1;
+      if (options.src === "missing.ogg") throw new Error("missing audio");
+      return super.startLoop(options);
+    }
+  }
+  const backend = new RecoveringBackend();
+  let revision = 1;
+  let source = "missing.ogg";
+  const ambienceService = {
+    getAmbience: () => normalizeAmbience({
+      id: "forest",
+      name: "Forest",
+      tracks: [{ id: "bed", name: "Bed", type: "audio", source, repeat: true, volume: 1 }]
+    }),
+    getAmbienceRevision: () => revision
+  };
+  const scene = { grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  let now = 1000;
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null,
+    retryMs: 5000,
+    nowFn: () => now,
+    onError: () => {}
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  assert.equal(attempts, 1);
+  source = "fixed.ogg";
+  revision = 2;
+  // Still inside the previous retry window, but the changed definition should
+  // be tried immediately rather than waiting for the old source's backoff.
+  now = 1100;
+  await service.tick();
+  assert.equal(attempts, 2);
+  assert.equal(service.runtimes.size, 1);
+  assert.equal(service.failures.has("e1"), false);
 });

@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const manager = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha30.js", import.meta.url), "utf8");
-const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls-alpha30.js", import.meta.url), "utf8");
-const main = fs.readFileSync(new URL("../scripts/main-alpha30.js", import.meta.url), "utf8");
+const manager = fs.readFileSync(new URL("../scripts/ui/ambience-manager.js", import.meta.url), "utf8");
+const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls.js", import.meta.url), "utf8");
+const main = fs.readFileSync(new URL("../scripts/main.js", import.meta.url), "utf8");
 
 test("manager exposes import and export as ordinary persistent ApplicationV2 actions", () => {
   assert.match(manager, /managerActionButton\("import"/);
@@ -25,7 +25,7 @@ test("import does not require a selected ambience while export does", () => {
   assert.ok(action.indexOf('action === "export"') > action.indexOf("requireSelection(selectedId)"));
 });
 
-test("current scene controls and main entry point use alpha.30 manager path", () => {
-  assert.match(controls, /ambience-manager-alpha30\.js/);
-  assert.match(main, /scene-controls-alpha30\.js/);
+test("current scene controls and main entry point use stable manager path", () => {
+  assert.match(controls, /ambience-manager\.js/);
+  assert.match(main, /scene-controls\.js/);
 });

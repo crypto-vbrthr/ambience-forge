@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const overlay = fs.readFileSync(new URL("../scripts/ui/emitter-overlay-alpha28.js", import.meta.url), "utf8");
-const manager = fs.readFileSync(new URL("../scripts/ui/emitter-manager-alpha22.js", import.meta.url), "utf8");
-const main = fs.readFileSync(new URL("../scripts/main-alpha28.js", import.meta.url), "utf8");
+const overlay = fs.readFileSync(new URL("../scripts/ui/emitter-overlay.js", import.meta.url), "utf8");
+const manager = fs.readFileSync(new URL("../scripts/ui/emitter-manager.js", import.meta.url), "utf8");
+const main = fs.readFileSync(new URL("../scripts/main.js", import.meta.url), "utf8");
 
 test("scene emitter overlay exposes edit and enable-disable controls on the canvas", () => {
   assert.match(overlay, /openEmitterEditor/);
@@ -20,10 +20,10 @@ test("emitter editor exposes persistent enabled state", () => {
   assert.match(manager, /enabled: checked\("enabled"\)/);
 });
 
-test("alpha 28 registers native canvas emitter overlay after scene emitter service is ready", () => {
+test("main entry registers native canvas emitter overlay after scene emitter service is ready", () => {
   assert.match(main, /registerEmitterOverlay/);
-  assert.match(main, /emitter-overlay-alpha28\.js/);
-  assert.match(main, /scene-emitter-service-alpha26\.js/);
+  assert.match(main, /emitter-overlay\.js/);
+  assert.match(main, /scene-emitter-service\.js/);
 });
 
 test("emitter markers are scene-bound PIXI children rather than viewport DOM elements", () => {

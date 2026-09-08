@@ -6,14 +6,17 @@ import { cloneData, normalizeAmbience, normalizeTrack, validateAmbience } from "
 import { exportAmbienceEnvelope, importAmbienceEnvelope } from "../data/export-import.js";
 
 export class AmbienceService {
-  constructor({ store, backend, schedulerFactory, moduleVersion = "0.0.0", random = Math.random }) {
+  constructor({ store, backend, schedulerFactory, moduleVersion = "0.0.0", random = Math.random, onLibraryChanged = null }) {
     this.store = store;
     this.backend = backend;
     this.schedulerFactory = schedulerFactory;
     this.moduleVersion = moduleVersion;
     this.random = random;
+    this.onLibraryChanged = onLibraryChanged;
     this.ambiences = new Map();
+    this.revisions = new Map();
     this.runtimes = new Map();
+    this.explicitPlayback = new Set();
     this.owners = new OwnerRegistry();
     this.previewHandle = null;
     this.previewRandomPreviousSource = null;
@@ -24,7 +27,60 @@ export class AmbienceService {
 
   async initialize() {
     const items = await this.store.loadAll();
-    this.ambiences = new Map(items.map((item) => [item.id, normalizeAmbience(item)]));
+    this.ambiences = new Map(items.map((item) => {
+      const ambience = normalizeAmbience(item);
+      return [ambience.id, ambience];
+    }));
+    this.revisions = new Map([...this.ambiences.keys()].map((id) => [id, 1]));
+  }
+
+  getAmbienceRevision(id) {
+    return this.revisions.get(id) ?? 0;
+  }
+
+  async reloadFromStore() {
+    const items = await this.store.loadAll();
+    return this.syncLibrary(items);
+  }
+
+  async syncLibrary(items) {
+    const next = new Map((items ?? []).map((item) => {
+      const ambience = normalizeAmbience(item);
+      return [ambience.id, ambience];
+    }));
+    const ids = new Set([...this.ambiences.keys(), ...next.keys()]);
+    const changed = [...ids].filter((id) => JSON.stringify(this.ambiences.get(id) ?? null) !== JSON.stringify(next.get(id) ?? null));
+    if (!changed.length) return false;
+
+    const running = changed.filter((id) => this.runtimes.has(id));
+    await Promise.all(running.map((id) => this.#stopRuntime(id)));
+    for (const id of changed) {
+      if (next.has(id)) this.revisions.set(id, (this.revisions.get(id) ?? 0) + 1);
+      else {
+        this.revisions.delete(id);
+        this.explicitPlayback.delete(id);
+        this.owners.clear(id);
+      }
+    }
+    this.ambiences = next;
+    for (const id of running) if (this.ambiences.has(id)) await this.#startRuntime(id);
+    await this.#notifyLibraryChanged(changed);
+    return true;
+  }
+
+  async syncAmbienceDefinition(input) {
+    const ambience = normalizeAmbience(input);
+    const errors = validateAmbience(ambience);
+    if (errors.length) throw new Error(`Invalid ambience: ${errors.join(", ")}`);
+    const current = this.ambiences.get(ambience.id);
+    if (JSON.stringify(current ?? null) === JSON.stringify(ambience)) return false;
+    const wasRunning = this.runtimes.has(ambience.id);
+    if (wasRunning) await this.#stopRuntime(ambience.id);
+    this.ambiences.set(ambience.id, ambience);
+    this.revisions.set(ambience.id, (this.revisions.get(ambience.id) ?? 0) + 1);
+    if (wasRunning) await this.#startRuntime(ambience.id);
+    await this.#notifyLibraryChanged([ambience.id]);
+    return true;
   }
 
   getAmbiences() {
@@ -51,18 +107,23 @@ export class AmbienceService {
     const errors = validateAmbience(ambience);
     if (errors.length) throw new Error(`Invalid ambience: ${errors.join(", ")}`);
     const wasRunning = this.runtimes.has(ambience.id);
-    if (wasRunning) await this.stopAmbience(ambience.id);
+    if (wasRunning) await this.#stopRuntime(ambience.id);
     this.ambiences.set(ambience.id, ambience);
+    this.revisions.set(ambience.id, (this.revisions.get(ambience.id) ?? 0) + 1);
     await this.#persist();
-    if (wasRunning) await this.playAmbience(ambience.id);
+    if (wasRunning) await this.#startRuntime(ambience.id);
+    await this.#notifyLibraryChanged([ambience.id]);
     return cloneData(ambience);
   }
 
   async deleteAmbience(id) {
-    await this.stopAmbience(id);
-    this.ambiences.delete(id);
+    this.explicitPlayback.delete(id);
     this.owners.clear(id);
+    await this.#stopRuntime(id);
+    this.ambiences.delete(id);
+    this.revisions.delete(id);
     await this.#persist();
+    await this.#notifyLibraryChanged([id]);
   }
 
   exportAmbience(id) {
@@ -76,7 +137,7 @@ export class AmbienceService {
     return this.upsertAmbience(ambience);
   }
 
-  async playAmbience(id) {
+  async #startRuntime(id) {
     const ambience = this.ambiences.get(id);
     if (!ambience) throw new Error(`Unknown Ambience Forge ambience: ${id}`);
     if (this.runtimes.has(id)) return false;
@@ -95,7 +156,7 @@ export class AmbienceService {
     }
   }
 
-  async stopAmbience(id) {
+  async #stopRuntime(id) {
     const runtime = this.runtimes.get(id);
     if (!runtime) return false;
     await runtime.stop();
@@ -103,15 +164,31 @@ export class AmbienceService {
     return true;
   }
 
+  async playAmbience(id) {
+    if (!this.ambiences.has(id)) throw new Error(`Unknown Ambience Forge ambience: ${id}`);
+    this.explicitPlayback.add(id);
+    return this.#startRuntime(id);
+  }
+
+  async stopAmbience(id) {
+    // An explicit Stop is a GM/API override for this ambience. Clear owner
+    // requests as well so the visible runtime state and ownership state cannot
+    // diverge after a manual stop.
+    this.explicitPlayback.delete(id);
+    this.owners.clear(id);
+    return this.#stopRuntime(id);
+  }
+
   async requestAmbience(id, owner) {
+    if (!this.ambiences.has(id)) throw new Error(`Unknown Ambience Forge ambience: ${id}`);
     const result = this.owners.request(id, owner);
-    if (result.wasEmpty) await this.playAmbience(id);
+    if (result.wasEmpty) await this.#startRuntime(id);
     return result.count;
   }
 
   async releaseAmbience(id, owner) {
     const result = this.owners.release(id, owner);
-    if (result.becameEmpty) await this.stopAmbience(id);
+    if (result.becameEmpty && !this.explicitPlayback.has(id)) await this.#stopRuntime(id);
     return result.count;
   }
 
@@ -247,12 +324,18 @@ export class AmbienceService {
   }
 
   async stopAll() {
-    await Promise.all([...this.runtimes.keys()].map((id) => this.stopAmbience(id)));
-    await this.stopPreview();
+    this.explicitPlayback.clear();
     this.owners.clearAll();
+    await Promise.all([...this.runtimes.keys()].map((id) => this.#stopRuntime(id)));
+    await this.stopPreview();
   }
 
   async #persist() {
     await this.store.saveAll([...this.ambiences.values()]);
+  }
+
+  async #notifyLibraryChanged(ids) {
+    if (!this.onLibraryChanged) return;
+    await this.onLibraryChanged([...ids]);
   }
 }

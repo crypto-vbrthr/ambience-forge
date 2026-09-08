@@ -5,12 +5,12 @@ Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finishe
 ## Current 0.1.0 alpha feature set
 
 - Layered Ambience compositions with saved master volume.
-- **Audio Tracks** for one-shot playback or seamless buffered Web Audio looping.
+- **Audio Tracks** for one-shot playback or seamless buffered Web Audio looping. Long one-shots use Foundry's streaming-capable `Sound` path; repeating ambience uses direct buffered Web Audio.
 - **Random Tracks** with sound lists, randomized minimum/maximum pauses, repeat avoidance, and optional overlap.
 - **Sequence Tracks** with sequential or randomized order and configurable pauses.
 - **Intensity Tracks** with ordered variants and crossfades between intensity levels.
 - Persistent `ApplicationV2` editors with inline Foundry audio file pickers and non-destructive preview.
-- **Quick Control** for temporary live master volume, per-track volume, track start/stop, and intensity changes.
+- **Quick Control** for temporary live master volume, per-track volume, track start/stop, and intensity changes. Ambience Forge also respects Foundry's Environment master-volume control.
 - **Scene Emitters** with position, radius, distance falloff, canvas markers, drag-and-drop movement, enable/disable, and Foundry-aware wall/door handling (`Ignore`, `Attenuate`, `Block`).
 - Composition **JSON import/export** for reuse across Foundry worlds. Audio files are referenced by path and are not embedded in exports.
 - English and German localization.

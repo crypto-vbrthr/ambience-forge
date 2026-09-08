@@ -1,4 +1,4 @@
-import { openEmitterEditor } from "./emitter-manager-alpha26.js";
+import { openEmitterEditor } from "./emitter-manager.js";
 
 const MARKER_RADIUS = 16;
 const ACTION_RADIUS = 12;
@@ -201,14 +201,19 @@ class EmitterCanvasOverlay {
     marker.zIndex = 999999;
     marker.interactiveChildren = true;
     marker._afEmitterId = emitter.id;
-    marker._afSuppressClick = false;
     marker._afHovered = false;
 
-    marker.on("pointerover", () => {
+    // Make the marker itself the stable hover target. pointerenter/pointerleave do not
+    // bubble when moving between the main button and its action buttons, so the
+    // edit/toggle controls stay visible while the pointer moves across the marker.
+    marker.interactive = true;
+    marker.eventMode = "static";
+    marker.hitArea = new PIXI.Rectangle(-20, -20, 104, 60);
+    marker.on("pointerenter", () => {
       marker._afHovered = true;
       this.#setExpanded(marker, true);
     });
-    marker.on("pointerout", () => {
+    marker.on("pointerleave", () => {
       marker._afHovered = false;
       if (!this.drag || this.drag.emitterId !== emitter.id) this.#setExpanded(marker, false);
     });
@@ -242,12 +247,6 @@ class EmitterCanvasOverlay {
       if ((native?.button ?? 0) !== 0) return;
       this.#dragStart(native ?? event, emitter.id, marker);
     });
-    main.on("pointertap", (event) => {
-      event.stopPropagation?.();
-      if (marker._afSuppressClick) return;
-      openEmitterEditor(this.api, emitter.id);
-    });
-
     const edit = makeActionButton({ x: 31, glyph: "✎", label: editLabel });
     edit.name = "edit";
     edit.on("pointertap", (event) => {
@@ -340,11 +339,6 @@ class EmitterCanvasOverlay {
     }
 
     event.preventDefault?.();
-    drag.marker._afSuppressClick = true;
-    globalThis.setTimeout?.(() => {
-      if (drag.marker && !drag.marker.destroyed) drag.marker._afSuppressClick = false;
-    }, 0);
-
     try {
       await this.api.updateSceneEmitter(drag.emitterId, { x: drag.x, y: drag.y });
     } finally {

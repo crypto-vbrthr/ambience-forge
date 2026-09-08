@@ -22,6 +22,7 @@ export class FakeAudioBackend extends AudioBackend {
 
   async stop(handle, options = {}) {
     this.events.push({ type: "stop", handle, options: { ...options } });
+    this.finish(handle);
   }
 
   async setVolume(handle, volume, options = {}) {
@@ -34,12 +35,23 @@ export class FakeAudioBackend extends AudioBackend {
     return next;
   }
 
+  finish(handle) {
+    if (!handle || handle._ended) return;
+    handle._ended = true;
+    handle._resolveEnded?.();
+  }
+
   #handle(kind, src) {
+    let resolveEnded;
+    const ended = new Promise((resolve) => { resolveEnded = resolve; });
     return {
       id: this.nextId++,
       kind,
       src,
-      durationMs: this.durations[src] ?? 1000
+      durationMs: this.durations[src] ?? 1000,
+      ended,
+      _resolveEnded: resolveEnded,
+      _ended: false
     };
   }
 }

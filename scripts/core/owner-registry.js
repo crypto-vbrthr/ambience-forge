@@ -14,7 +14,7 @@ export class OwnerRegistry {
 
   release(key, owner) {
     const owners = this.ownersByKey.get(key);
-    if (!owners) return { becameEmpty: true, count: 0 };
+    if (!owners) return { becameEmpty: false, count: 0 };
     owners.delete(owner);
     if (!owners.size) this.ownersByKey.delete(key);
     return { becameEmpty: owners.size === 0, count: owners.size };

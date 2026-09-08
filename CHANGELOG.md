@@ -6,6 +6,28 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## [0.1.0-alpha.31] - 2026-09-08
+
+### Changed
+- Consolidated the runtime onto stable module paths (`scripts/main.js` and stable UI/service filenames) and removed obsolete alpha-specific JavaScript forks from the distribution.
+- One-shot, Random, and Sequence playback now uses Foundry's `Sound` abstraction so long files can stream instead of always being decoded fully into memory. Seamless repeating ambience continues to use direct buffered Web Audio playback. One-shot `Sound` instances are explicitly non-singleton so intentional overlap remains possible.
+- Seamless loop output now routes through Foundry's Environment audio master gain when available, so the normal Foundry Environment volume control also affects Ambience Forge.
+- Buffered loops now reuse Foundry's shared audio buffer cache when available and only keep a small in-flight-load map internally.
+- Ambience definitions sent with synchronized Play/Request commands are synchronized on receiving clients before playback, preventing stale definitions when a composition has just been edited.
+- Scene Emitters now track Ambience definition revisions and restart their local runtime when the referenced composition changes.
+
+### Fixed
+- Scene Emitter playback failures now enter a bounded retry backoff instead of retrying a broken audio source on every 200 ms spatial update. A changed Ambience definition bypasses the old backoff and retries immediately.
+- Failed intensity crossfades now stop and clean up the newly-created loop source before rethrowing the transition error, preventing silent/partial orphan sources.
+- Owner/reference-counted requests no longer stop a composition that was also started explicitly. An explicit Stop remains a force-stop for that ambience and clears outstanding owner claims, keeping runtime and ownership state consistent.
+- Finished one-shot handles are removed from long-running Random/Sequence controllers instead of accumulating for the lifetime of a composition.
+- Random/Sequence scheduler callback failures are contained and reported instead of becoming unhandled promise rejections; scheduling continues after an individual playback failure.
+- World-setting changes now reload the in-memory Ambience library and refresh active playback/Scene Emitters when definitions changed on another client.
+
+### Tests / Maintenance
+- Added regression coverage for client library synchronization, embedded socket definitions, Scene Emitter revision refresh, streamed one-shots, Foundry Environment master gain routing, shared buffer caching, ended-handle cleanup, and scheduler error containment.
+- Hardened project validation to enforce stable entry points, version parity, JavaScript syntax, relative-import integrity, localization parity, and absence of obsolete alpha runtime files.
+
 ## [0.1.0-alpha.30] - 2026-09-08
 
 ### Fixed

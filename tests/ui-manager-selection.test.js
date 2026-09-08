@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { resolveEditorTarget } from "../scripts/ui/ambience-manager-alpha16.js";
+import { resolveEditorTarget } from "../scripts/ui/ambience-manager.js";
 
-const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager-alpha16.js", import.meta.url), "utf8");
+const source = fs.readFileSync(new URL("../scripts/ui/ambience-manager.js", import.meta.url), "utf8");
 
 test("editor target preserves the selected existing ambience id and data", () => {
   const ambience = { id: "ambience-selected", name: "Selected", tracks: [] };

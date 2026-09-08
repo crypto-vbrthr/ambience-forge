@@ -27,6 +27,19 @@ class BaseTrackController {
     return this.track.volume * this.masterVolume;
   }
 
+  rememberHandle(handle) {
+    if (!handle) return handle;
+    this.handles.add(handle);
+    if (handle.ended?.finally) handle.ended.finally(() => this.handles.delete(handle));
+    return handle;
+  }
+
+  async discardHandle(handle) {
+    if (!handle) return;
+    this.handles.delete(handle);
+    await this.backend.stop(handle, { fadeOutMs: 0 });
+  }
+
   async setVolume(volume, { durationMs = 0 } = {}) {
     this.track.volume = Math.min(1, Math.max(0, Number(volume) || 0));
     await Promise.all([...this.handles].map((handle) => this.backend.setVolume(handle, this.effectiveVolume, { durationMs })));
@@ -40,6 +53,7 @@ class BaseTrackController {
 
 export class AudioTrackController extends BaseTrackController {
   async start() {
+    if (this.running) return;
     await super.start();
     if (!this.track.source) return;
     const handle = this.track.repeat
@@ -55,7 +69,8 @@ export class AudioTrackController extends BaseTrackController {
           volume: this.effectiveVolume,
           fadeInMs: this.track.fadeInMs
         });
-    this.handles.add(handle);
+    if (!this.running) return this.discardHandle(handle);
+    this.rememberHandle(handle);
   }
 }
 
@@ -67,6 +82,7 @@ export class RandomTrackController extends BaseTrackController {
   }
 
   async start() {
+    if (this.running) return;
     await super.start();
     this.#scheduleNext();
   }
@@ -82,16 +98,21 @@ export class RandomTrackController extends BaseTrackController {
     const delay = extraDelay + this.scheduler.delay(this.track.minDelayMs, this.track.maxDelayMs);
     this.timer = this.scheduler.schedule(delay, async () => {
       if (!this.running) return;
-      const index = chooseIndex(this.track.sources.length, {
-        previous: this.previousIndex,
-        avoidImmediateRepeat: this.track.avoidImmediateRepeat,
-        random: this.scheduler.random
-      });
-      this.previousIndex = index;
-      const handle = await this.backend.playOneShot({ src: this.track.sources[index], volume: this.effectiveVolume });
-      this.handles.add(handle);
-      const nextExtra = this.track.allowOverlap ? 0 : handle.durationMs;
-      this.#scheduleNext(nextExtra);
+      let nextExtra = 0;
+      try {
+        const index = chooseIndex(this.track.sources.length, {
+          previous: this.previousIndex,
+          avoidImmediateRepeat: this.track.avoidImmediateRepeat,
+          random: this.scheduler.random
+        });
+        this.previousIndex = index;
+        const handle = await this.backend.playOneShot({ src: this.track.sources[index], volume: this.effectiveVolume });
+        if (!this.running) return this.discardHandle(handle);
+        this.rememberHandle(handle);
+        nextExtra = this.track.allowOverlap ? 0 : handle.durationMs;
+      } finally {
+        if (this.running) this.#scheduleNext(nextExtra);
+      }
     });
   }
 }
@@ -104,6 +125,7 @@ export class SequenceTrackController extends BaseTrackController {
   }
 
   async start() {
+    if (this.running) return;
     await super.start();
     this.#scheduleNext(0, true);
   }
@@ -130,10 +152,16 @@ export class SequenceTrackController extends BaseTrackController {
     const gap = immediate ? 0 : this.scheduler.delay(this.track.minDelayMs, this.track.maxDelayMs);
     this.timer = this.scheduler.schedule(extraDelay + gap, async () => {
       if (!this.running) return;
-      this.index = this.#nextIndex();
-      const handle = await this.backend.playOneShot({ src: this.track.sources[this.index], volume: this.effectiveVolume });
-      this.handles.add(handle);
-      this.#scheduleNext(handle.durationMs, false);
+      let durationMs = 0;
+      try {
+        this.index = this.#nextIndex();
+        const handle = await this.backend.playOneShot({ src: this.track.sources[this.index], volume: this.effectiveVolume });
+        if (!this.running) return this.discardHandle(handle);
+        this.rememberHandle(handle);
+        durationMs = handle.durationMs;
+      } finally {
+        if (this.running) this.#scheduleNext(durationMs, false);
+      }
     });
   }
 }
@@ -151,16 +179,24 @@ export class IntensityTrackController extends BaseTrackController {
   }
 
   async start() {
+    if (this.running) return;
     await super.start();
     const index = this.#indexForIntensity(this.track.intensity);
     if (index < 0) return;
     this.variantIndex = index;
-    this.handle = await this.backend.startLoop({
+    const handle = await this.backend.startLoop({
       src: this.track.variants[index].source,
       volume: this.effectiveVolume,
       fadeInMs: this.track.fadeInMs
     });
-    this.handles.add(this.handle);
+    if (!this.running) return this.discardHandle(handle);
+    this.handle = this.rememberHandle(handle);
+  }
+
+  async stop() {
+    this.handle = null;
+    this.variantIndex = -1;
+    await super.stop();
   }
 
   async setIntensity(intensity) {
@@ -173,9 +209,9 @@ export class IntensityTrackController extends BaseTrackController {
       volume: this.effectiveVolume,
       durationMs: this.track.transitionMs
     });
+    if (!this.running) return this.discardHandle(next);
     if (previous) this.handles.delete(previous);
-    this.handle = next;
-    this.handles.add(next);
+    this.handle = this.rememberHandle(next);
     this.variantIndex = index;
   }
 }
