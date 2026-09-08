@@ -6,6 +6,20 @@ The project is currently in alpha development. Until the first stable release,
 internal details may still change, while the public API is kept deliberately
 versioned and compatibility-conscious.
 
+## 0.1.0-alpha.25
+
+- Replaced the HTML/DOM Scene-emitter marker overlay with native PIXI markers attached directly to Foundry VTT's `InterfaceCanvasGroup`.
+- Emitter markers now share the exact Scene transform used by Foundry placeables, preventing marker drift while zooming or panning.
+- Kept map-based editing, enable/disable controls, and left-drag repositioning.
+- Marker visuals use inverse zoom scaling so the controls remain a practical screen size while their position stays anchored to Scene coordinates.
+
+## [0.1.0-alpha.24] - 2026-09-08
+
+### Fixed
+- Scene emitter map markers now stay anchored to their Scene coordinates while zooming and panning.
+- Replaced the custom PIXI world-transform / DOM-canvas conversion with Foundry V14's public `clientCoordinatesFromCanvas()` and `canvasCoordinatesFromClient()` helpers.
+- Dragging emitters now uses the same Foundry coordinate conversion path as marker rendering, preventing zoom-dependent coordinate drift.
+
 ## [0.1.0-alpha.23] - 2026-09-08
 
 ### Added
