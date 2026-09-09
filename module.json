@@ -2,7 +2,7 @@
   "id": "ambience-forge",
   "title": "Ambience Forge",
   "description": "A system-agnostic Foundry VTT engine for layered ambience, seamless loops, randomized events, sequencing, intensity transitions, combinable states/situations, spatial emitters, and a public integration API.",
-  "version": "0.2.0-alpha.7",
+  "version": "0.2.0-rc.1",
   "compatibility": {
     "minimum": "14",
     "verified": "14.365"

@@ -151,7 +151,7 @@
   "AMBIENCE_FORGE.Notifications.SourceRequired": "Bitte zuerst eine Audiodatei auswählen.",
   "AMBIENCE_FORGE.Notifications.SourcesRequired": "Die Zufallsspur benötigt mindestens eine Audiodatei.",
   "AMBIENCE_FORGE.Notifications.StoppedAll": "Ambience-Forge-Wiedergabe gestoppt.",
-  "AMBIENCE_FORGE.Notifications.TrackEditorNotAvailable": "Dieser Spurtyp wird von der Engine bereits unterstützt, sein Editor ist aber noch nicht Teil dieser Alpha.",
+  "AMBIENCE_FORGE.Notifications.TrackEditorNotAvailable": "Dieser Spurtyp wird von der Engine unterstützt, besitzt in dieser Version aber keinen eigenen Editor.",
   "AMBIENCE_FORGE.Notifications.TrackNameRequired": "Die Spur benötigt einen Namen.",
   "AMBIENCE_FORGE.Notifications.TrackNotFound": "Die ausgewählte Spur wurde nicht gefunden.",
   "AMBIENCE_FORGE.Quick.Active": "Derzeit aktiv",

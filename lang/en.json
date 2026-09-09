@@ -151,7 +151,7 @@
   "AMBIENCE_FORGE.Notifications.SourceRequired": "Choose an audio file first.",
   "AMBIENCE_FORGE.Notifications.SourcesRequired": "The random track needs at least one sound file.",
   "AMBIENCE_FORGE.Notifications.StoppedAll": "Ambience Forge playback stopped.",
-  "AMBIENCE_FORGE.Notifications.TrackEditorNotAvailable": "This track type is already supported by the engine but its editor is not part of this alpha yet.",
+  "AMBIENCE_FORGE.Notifications.TrackEditorNotAvailable": "This track type is supported by the engine but does not have an editor in this version.",
   "AMBIENCE_FORGE.Notifications.TrackNameRequired": "The track needs a name.",
   "AMBIENCE_FORGE.Notifications.TrackNotFound": "The selected track was not found.",
   "AMBIENCE_FORGE.Quick.Active": "Currently active",

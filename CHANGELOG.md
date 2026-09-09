@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0-rc.1
+
+- Release candidate for the 0.2.0 state/context integration line.
+- Feature freeze: only bug fixes and release-critical compatibility corrections are planned before 0.2.0.
+- Consolidated module/package version metadata and refreshed README/API release references.
+- Removed the last alpha-specific user-facing fallback wording.
+- Public API remains 1.3 and data schema remains 5; no functional or migration changes from 0.2.0-alpha.7.
+
 ## 0.2.0-alpha.7
 
 - Quick Control now groups multiple external context values by provider, so one module such as Weather Forge appears once with its weather and wind values listed beneath it.

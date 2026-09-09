@@ -21,11 +21,11 @@ The module is intentionally optional infrastructure. Consumers should continue t
 
 ## Versioning and capabilities
 
-For Ambience Forge 0.2.0-alpha.7:
+For Ambience Forge 0.2.0-rc.1:
 
 ```js
 api.version; // "1.3"
-api.getModuleVersion(); // "0.2.0-alpha.7"
+api.getModuleVersion(); // "0.2.0-rc.1"
 api.capabilities; // frozen array of supported capability strings
 ```
 
@@ -298,7 +298,7 @@ Hooks.once("ambienceForgeReady", async (api) => {
 
 ## Compatibility promise for API v1.x
 
-During the 0.1.0 release-candidate cycle, the module feature set is frozen. The 1.x public API is treated as an integration contract. API 1.2 extends 1.1 with semantic composition keys, state discovery, and semantic state-control capabilities and does not remove the 1.0 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
+During the 0.2.0 release-candidate cycle, the module feature set is frozen. The 1.x public API is treated as an integration contract. API 1.3 extends 1.2 with persistent external context states and does not remove the earlier 1.0–1.2 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
 
 
 ## Multiple context groups from one provider
