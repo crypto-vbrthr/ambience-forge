@@ -21,11 +21,11 @@ The module is intentionally optional infrastructure. Consumers should continue t
 
 ## Versioning and capabilities
 
-For Ambience Forge 0.2.0-alpha.6:
+For Ambience Forge 0.2.0-alpha.7:
 
 ```js
 api.version; // "1.3"
-api.getModuleVersion(); // "0.2.0-alpha.6"
+api.getModuleVersion(); // "0.2.0-alpha.7"
 api.capabilities; // frozen array of supported capability strings
 ```
 
@@ -299,3 +299,8 @@ Hooks.once("ambienceForgeReady", async (api) => {
 ## Compatibility promise for API v1.x
 
 During the 0.1.0 release-candidate cycle, the module feature set is frozen. The 1.x public API is treated as an integration contract. API 1.2 extends 1.1 with semantic composition keys, state discovery, and semantic state-control capabilities and does not remove the 1.0 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
+
+
+## Multiple context groups from one provider
+
+A provider may own several independent context groups at the same time. For example, Weather Forge can publish `weather = rain` and `wind = strong-wind` using the same owner id. Ambience Forge stores ownership per group, so each context remains independently replaceable and clearable.

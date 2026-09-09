@@ -88,15 +88,33 @@ function externalContextSection(api, state) {
   const section = element("section", { className: "ambience-forge-external-control" });
   section.append(element("h2", { text: game.i18n.localize("AMBIENCE_FORGE.Quick.ExternalControl") }));
   const list = element("div", { className: "ambience-forge-external-control-list" });
+
+  const providers = new Map();
   for (const [groupKey, entry] of entries) {
-    const stateKey = String(entry.state ?? "");
-    const names = stateDisplayNames(api, groupKey, stateKey);
-    const row = element("div", { className: "ambience-forge-external-control-row" });
-    const provider = element("strong", { text: providerDisplayName(entry.owner) });
-    const value = element("span", { text: `${names.groupName}: ${names.stateName}` });
-    const technical = element("small", { text: `${groupKey} = ${stateKey}` });
-    row.append(provider, value, technical);
-    list.append(row);
+    const owner = String(entry.owner ?? "");
+    if (!providers.has(owner)) providers.set(owner, []);
+    providers.get(owner).push([groupKey, entry]);
+  }
+
+  for (const [owner, providerEntries] of providers) {
+    const provider = element("div", { className: "ambience-forge-external-provider" });
+    provider.append(element("strong", {
+      className: "ambience-forge-external-provider-name",
+      text: providerDisplayName(owner)
+    }));
+
+    const states = element("div", { className: "ambience-forge-external-provider-states" });
+    for (const [groupKey, entry] of providerEntries) {
+      const stateKey = String(entry.state ?? "");
+      const names = stateDisplayNames(api, groupKey, stateKey);
+      const row = element("div", { className: "ambience-forge-external-control-row" });
+      const value = element("span", { text: `${names.groupName}: ${names.stateName}` });
+      const technical = element("small", { text: `${groupKey} = ${stateKey}` });
+      row.append(value, technical);
+      states.append(row);
+    }
+    provider.append(states);
+    list.append(provider);
   }
   section.append(list);
   return section;

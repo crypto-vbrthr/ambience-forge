@@ -89,6 +89,20 @@ heavy-snow
 hail
 ```
 
+### Wind
+
+```text
+wind
+
+calm
+breeze
+windy
+strong-wind
+gale
+```
+
+Weather and wind should normally be modeled as independent groups. For example, Weather Forge may publish both `weather = rain` and `wind = strong-wind`. This lets each composition decide how those two conditions combine acoustically.
+
 ### Time of day
 
 ```text

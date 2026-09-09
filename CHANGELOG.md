@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0-alpha.7
+
+- Quick Control now groups multiple external context values by provider, so one module such as Weather Forge appears once with its weather and wind values listed beneath it.
+- Added the Forge Suite `wind` semantic convention with recommended `calm`, `breeze`, `windy`, `strong-wind`, and `gale` state keys.
+- Updated integration documentation for providers that publish several independent context groups simultaneously.
+- No data-schema or public-API changes.
+
 ## 0.2.0-alpha.6
 
 - Fixed Quick Control state rows overflowing into neighboring state groups when an externally controlled state displayed its provider badge and synchronization hint.

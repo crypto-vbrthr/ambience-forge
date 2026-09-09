@@ -428,9 +428,26 @@
   gap: 0.35rem;
 }
 
+.ambience-forge-external-provider {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.38fr) minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: start;
+}
+
+.ambience-forge-external-provider-name {
+  line-height: 1.35;
+}
+
+.ambience-forge-external-provider-states {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
 .ambience-forge-external-control-row {
   display: grid;
-  grid-template-columns: minmax(9rem, auto) 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.55rem;
   align-items: baseline;
 }
@@ -457,6 +474,7 @@
 }
 
 @media (max-width: 600px) {
+  .ambience-forge-external-provider,
   .ambience-forge-external-control-row {
     grid-template-columns: 1fr;
     gap: 0.1rem;

@@ -63,3 +63,11 @@ test("Quick Control keeps externally controlled state metadata inside its own ro
   assert.match(css, /\.ambience-forge-quick-state-group[^}]*grid-template-columns:\s*minmax\(8\.5rem, 0\.38fr\) minmax\(0, 1fr\)/s);
   assert.match(css, /ambience-forge-provider-hint[^}]*grid-column:\s*2/s);
 });
+
+
+test("Quick Control groups multiple external context values by provider", () => {
+  assert.match(source, /const providers = new Map\(\)/);
+  assert.match(source, /ambience-forge-external-provider/);
+  assert.match(source, /ambience-forge-external-provider-states/);
+  assert.match(css, /\.ambience-forge-external-provider\s*\{/);
+});
