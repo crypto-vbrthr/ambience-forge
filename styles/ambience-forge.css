@@ -376,8 +376,23 @@
 
 .ambience-forge-quick-state-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.35rem 0.55rem;
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+}
+
+.ambience-forge-quick-state-group {
+  grid-template-columns: minmax(8.5rem, 0.38fr) minmax(0, 1fr);
+  align-items: start;
+  padding: 0.2rem 0;
+}
+
+.ambience-forge-quick-state-group > select {
+  min-width: 0;
+}
+
+.ambience-forge-quick-state-group > .ambience-forge-provider-badge,
+.ambience-forge-quick-state-group > .ambience-forge-provider-hint {
+  grid-column: 2;
 }
 
 @media (max-width: 760px) {
@@ -392,5 +407,70 @@
 
   .ambience-forge-state-track-name {
     margin-bottom: 0.1rem;
+  }
+}
+
+
+.ambience-forge-external-control {
+  border: 1px solid var(--color-border-light-primary, #7a7971);
+  border-radius: 6px;
+  padding: 0.55rem 0.65rem;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.ambience-forge-external-control > h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.ambience-forge-external-control-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ambience-forge-external-control-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) 1fr auto;
+  gap: 0.55rem;
+  align-items: baseline;
+}
+
+.ambience-forge-external-control-row small {
+  opacity: 0.7;
+  font-family: monospace;
+}
+
+.ambience-forge-provider-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 0.25rem;
+  padding: 0.12rem 0.42rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.ambience-forge-provider-hint {
+  margin: 0.12rem 0 0;
+  line-height: 1.25;
+}
+
+@media (max-width: 600px) {
+  .ambience-forge-external-control-row {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .ambience-forge-quick-state-group {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  .ambience-forge-quick-state-group > .ambience-forge-provider-badge,
+  .ambience-forge-quick-state-group > .ambience-forge-provider-hint {
+    grid-column: 1;
   }
 }

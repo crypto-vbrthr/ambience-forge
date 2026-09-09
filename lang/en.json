@@ -253,5 +253,9 @@
   "AMBIENCE_FORGE.States.KeyOptional": "API key (optional)",
   "AMBIENCE_FORGE.States.Track": "Track",
   "AMBIENCE_FORGE.Editor.KeyOptional": "API key (optional)",
-  "AMBIENCE_FORGE.Editor.KeyHint": "Stable technical key for integrations and macros. Leave blank to derive it automatically from the composition name, for example forest or tavern."
+  "AMBIENCE_FORGE.Editor.KeyHint": "Stable technical key for integrations and macros. Leave blank to derive it automatically from the composition name, for example forest or tavern.",
+  "AMBIENCE_FORGE.Quick.ExternalControl": "External control",
+  "AMBIENCE_FORGE.Quick.ControlledBy": "Controlled by {provider}",
+  "AMBIENCE_FORGE.Quick.ExternalOverrideHint": "This state is supplied by another module and may be restored on its next synchronization.",
+  "AMBIENCE_FORGE.Quick.ManualControl": "External source"
 }

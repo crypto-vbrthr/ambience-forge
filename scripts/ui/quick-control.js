@@ -60,6 +60,48 @@ function iconButton(action, labelKey, iconClass, extraAttrs = {}) {
   return button;
 }
 
+
+function providerDisplayName(owner) {
+  const key = String(owner ?? "").trim();
+  if (!key) return game.i18n.localize("AMBIENCE_FORGE.Quick.ManualControl");
+  const module = globalThis.game?.modules?.get?.(key);
+  return String(module?.title ?? module?.name ?? key);
+}
+
+function stateDisplayNames(api, groupKey, stateKey) {
+  const catalog = api.getStateCatalog?.() ?? { compositions: [] };
+  for (const composition of catalog.compositions ?? []) {
+    const group = (composition.groups ?? []).find((entry) => entry.key === groupKey);
+    if (!group) continue;
+    const state = (group.states ?? []).find((entry) => entry.key === stateKey);
+    return {
+      groupName: group.name || groupKey,
+      stateName: state?.name || stateKey
+    };
+  }
+  return { groupName: groupKey, stateName: stateKey };
+}
+
+function externalContextSection(api, state) {
+  const entries = Object.entries(state.contextStates ?? {}).filter(([, entry]) => entry?.state);
+  if (!entries.length) return null;
+  const section = element("section", { className: "ambience-forge-external-control" });
+  section.append(element("h2", { text: game.i18n.localize("AMBIENCE_FORGE.Quick.ExternalControl") }));
+  const list = element("div", { className: "ambience-forge-external-control-list" });
+  for (const [groupKey, entry] of entries) {
+    const stateKey = String(entry.state ?? "");
+    const names = stateDisplayNames(api, groupKey, stateKey);
+    const row = element("div", { className: "ambience-forge-external-control-row" });
+    const provider = element("strong", { text: providerDisplayName(entry.owner) });
+    const value = element("span", { text: `${names.groupName}: ${names.stateName}` });
+    const technical = element("small", { text: `${groupKey} = ${stateKey}` });
+    row.append(provider, value, technical);
+    list.append(row);
+  }
+  section.append(list);
+  return section;
+}
+
 function activeTrackControl(ambience, track, state) {
   const trackId = track.id;
   const liveVolume = state.trackVolumes?.[ambience.id]?.[trackId] ?? track.volume ?? 1;
@@ -119,6 +161,7 @@ function activeTrackControl(ambience, track, state) {
 
 function stateGroupControl(ambience, group, state) {
   const selected = state.ambienceStates?.[ambience.id]?.[group.key] ?? null;
+  const owner = state.ambienceStateOwners?.[ambience.id]?.[group.key] ?? null;
   const options = [
     { value: "", label: game.i18n.localize("AMBIENCE_FORGE.Quick.StateNone") },
     ...(group.states ?? []).map((entry) => ({ value: entry.key, label: entry.name }))
@@ -126,7 +169,21 @@ function stateGroupControl(ambience, group, state) {
   const control = select(`quickState-${ambience.id}-${group.id}`, options, selected ?? "");
   control.dataset.afQuickStateGroup = group.key;
   control.dataset.ambienceId = ambience.id;
-  return field(group.name, control);
+
+  const wrapped = field(group.name, control);
+  wrapped.classList.add("ambience-forge-quick-state-group");
+  if (owner && owner !== "ambience-forge-ui") {
+    const badge = element("span", {
+      className: "ambience-forge-provider-badge",
+      text: game.i18n.format("AMBIENCE_FORGE.Quick.ControlledBy", { provider: providerDisplayName(owner) })
+    });
+    wrapped.append(badge);
+    wrapped.append(element("p", {
+      className: "hint ambience-forge-provider-hint",
+      text: game.i18n.localize("AMBIENCE_FORGE.Quick.ExternalOverrideHint")
+    }));
+  }
+  return wrapped;
 }
 
 function activeCard(api, ambience, state) {
@@ -187,6 +244,9 @@ function quickContent(api, selectedId = "") {
   }
 
   const state = api.getState();
+  const external = externalContextSection(api, state);
+  if (external) wrapper.append(external);
+
   const active = state.activeAmbienceIds
     .map((id) => api.getAmbience(id))
     .filter(Boolean)

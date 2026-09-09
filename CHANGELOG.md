@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0-alpha.6
+
+- Fixed Quick Control state rows overflowing into neighboring state groups when an externally controlled state displayed its provider badge and synchronization hint.
+- State groups in Quick Control now use a single-column list with a compact two-column internal layout, keeping provider metadata attached to the correct group.
+- Added a narrow-window fallback that stacks state controls cleanly instead of allowing labels or selects to overlap.
+
+## 0.2.0-alpha.5
+
+- Quick Control now exposes persistent external context states, including the provider module and the currently supplied semantic group/state values.
+- Active state groups show when their value is controlled by an external provider such as Weather Forge.
+- External control remains manually overridable; the UI warns that the provider may restore its value on the next synchronization.
+
 ## [0.2.0-alpha.4] - 2026-09-08
 
 ### Added

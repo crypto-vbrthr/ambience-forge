@@ -4,6 +4,7 @@ import fs from "node:fs";
 
 const source = fs.readFileSync(new URL("../scripts/ui/quick-control.js", import.meta.url), "utf8");
 const controls = fs.readFileSync(new URL("../scripts/ui/scene-controls.js", import.meta.url), "utf8");
+const css = fs.readFileSync(new URL("../styles/ambience-forge.css", import.meta.url), "utf8");
 
 test("Quick Control is a persistent ApplicationV2 and is exposed in Scene Controls", () => {
   assert.match(source, /const ApplicationV2 = foundry\.applications\.api\.ApplicationV2/);
@@ -44,4 +45,21 @@ test("Quick Control exposes combinable state groups for live switching", () => {
   assert.match(source, /AMBIENCE_FORGE\.Quick\.States/);
   assert.match(source, /this\.api\.setState/);
   assert.match(source, /this\.api\.clearState/);
+});
+
+
+test("Quick Control shows persistent external context and provider ownership", () => {
+  assert.match(source, /state\.contextStates/);
+  assert.match(source, /AMBIENCE_FORGE\.Quick\.ExternalControl/);
+  assert.match(source, /providerDisplayName/);
+  assert.match(source, /ambienceStateOwners/);
+  assert.match(source, /AMBIENCE_FORGE\.Quick\.ControlledBy/);
+});
+
+
+test("Quick Control keeps externally controlled state metadata inside its own row", () => {
+  assert.match(source, /ambience-forge-quick-state-group/);
+  assert.match(css, /\.ambience-forge-quick-state-list\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(css, /\.ambience-forge-quick-state-group[^}]*grid-template-columns:\s*minmax\(8\.5rem, 0\.38fr\) minmax\(0, 1fr\)/s);
+  assert.match(css, /ambience-forge-provider-hint[^}]*grid-column:\s*2/s);
 });

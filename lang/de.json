@@ -253,5 +253,9 @@
   "AMBIENCE_FORGE.States.KeyOptional": "API-Schlüssel (optional)",
   "AMBIENCE_FORGE.States.Track": "Spur",
   "AMBIENCE_FORGE.Editor.KeyOptional": "API-Schlüssel (optional)",
-  "AMBIENCE_FORGE.Editor.KeyHint": "Stabiler technischer Schlüssel für Integrationen und Makros. Leer lassen, um ihn automatisch aus dem Namen der Komposition abzuleiten, z. B. forest oder tavern."
+  "AMBIENCE_FORGE.Editor.KeyHint": "Stabiler technischer Schlüssel für Integrationen und Makros. Leer lassen, um ihn automatisch aus dem Namen der Komposition abzuleiten, z. B. forest oder tavern.",
+  "AMBIENCE_FORGE.Quick.ExternalControl": "Externe Steuerung",
+  "AMBIENCE_FORGE.Quick.ControlledBy": "Gesteuert durch {provider}",
+  "AMBIENCE_FORGE.Quick.ExternalOverrideHint": "Dieser Zustand wird von einem anderen Modul geliefert und kann bei der nächsten Synchronisierung wiederhergestellt werden.",
+  "AMBIENCE_FORGE.Quick.ManualControl": "Externe Quelle"
 }
