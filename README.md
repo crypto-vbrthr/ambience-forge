@@ -2,7 +2,30 @@
 
 Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finished audio assets. It controls **what plays, when it plays, how loudly it plays, and which layers run in parallel**. It intentionally does not edit audio or apply EQ, reverb, filters, pitch changes, or other sound processing.
 
-## 0.2.0-rc.1 feature set
+
+## Part of the Forge Suite
+
+**Ambience Forge** is part of the **Forge Suite**, a growing collection of Foundry VTT modules and add-ons built for the busy Game Master. The suite is designed to reduce preparation and bookkeeping, make common GM tasks easier, and add useful tools that help make running and playing campaigns smoother and more enjoyable.
+
+An overview of the Forge Suite, its modules, add-ons, and shared documentation is available here:
+
+**Forge Suite:** https://github.com/crypto-vbrthr/pf2e-forge-suite
+
+
+## Feedback, Bug Reports & Feature Requests
+
+Found a bug, have an idea for an improvement, or would like to suggest a new feature?
+
+Feedback is always welcome. Please feel free to open a new **GitHub Issue** at any time, whether you want to report a problem, suggest a quality-of-life improvement, propose a new feature, or share an idea for how the module could be made more useful.
+
+When reporting a bug, please include as much relevant information as possible, such as the Foundry VTT version, PF2e system version, module version, steps to reproduce the issue, and any console errors or screenshots that may help identify the problem.
+
+Suggestions and feature requests are equally welcome. Even small ideas can lead to useful improvements.
+
+**Open an issue here:** https://github.com/crypto-vbrthr/ambience-forge/issues
+
+
+## 0.2.0 feature set
 
 - Layered Ambience compositions with saved master volume.
 - **Audio Tracks** for one-shot playback or seamless buffered Web Audio looping. Long one-shots use Foundry's streaming-capable `Sound` path; repeating ambience uses direct buffered Web Audio.
@@ -19,7 +42,7 @@ Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finishe
 - Automated Node test suite and validation checks.
 - MIT License, maintained `CHANGELOG.md`, and a documented versioned public API.
 
-Ambience Forge 0.2.0-rc.1 is the release candidate for the 0.2.0 state and integration line, built on the stable 0.1.0 foundation. The state system is intentionally integration-first so modules such as Weather Forge or Calendar Forge can control the same composition without duplicating audio setups. From this release candidate onward, the 0.2.0 line is feature-frozen and receives bug fixes only until the stable release.
+Ambience Forge 0.2.0 is the stable release of the state and integration line, built on the 0.1.0 audio-orchestration foundation. The state system is intentionally integration-first so modules such as Weather Forge or Calendar Forge can control the same composition without duplicating audio setups.
 
 ## Audio philosophy
 
@@ -27,7 +50,7 @@ Prepare sound files externally with the editor or audio tool of your choice. Amb
 
 ## Public API
 
-The public API is versioned independently from the module release. Ambience Forge 0.2.0-rc.1 exposes API version `1.3`. See [`API.md`](API.md) for the complete integration contract.
+The public API is versioned independently from the module release. Ambience Forge 0.2.0 exposes API version `1.3`. See [`API.md`](API.md) for the complete integration contract.
 
 
 Other modules may access the versioned API through:

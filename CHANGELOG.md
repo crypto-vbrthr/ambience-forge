@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 - 2026-09-09
+
+- Promoted the successfully tested `0.2.0-rc.1` build to the stable 0.2.0 release.
+- Adds combinable state/situation groups, semantic composition/group/state keys, persistent external context states, provider/owner visibility, and Forge Suite integration conventions.
+- Supports optional external providers such as Weather Forge publishing independent weather and wind contexts without controlling audio tracks directly.
+- Public API remains 1.3 and data schema remains 5.
+- No functional or migration changes from the accepted release candidate.
+
 ## 0.2.0-rc.1
 
 - Release candidate for the 0.2.0 state/context integration line.
