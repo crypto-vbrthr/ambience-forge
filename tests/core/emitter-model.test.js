@@ -25,3 +25,9 @@ test("disabled scene emitter produces no gain", () => {
   const emitter = { x: 0, y: 0, radius: 10, volume: 1, easing: true, enabled: false };
   assert.equal(computeEmitterGain({ emitter, listener: { x: 0, y: 0 }, scene }), 0);
 });
+
+test("scene emitter data normalizes a stable semantic key", async () => {
+  const { normalizeEmitterData } = await import("../../scripts/scene/emitter-model.js");
+  assert.equal(normalizeEmitterData({ ambienceId: "forest", name: "Old Waterfall" }).key, "old-waterfall");
+  assert.equal(normalizeEmitterData({ ambienceId: "forest", name: "Old Waterfall", key: "waterfall-main" }).key, "waterfall-main");
+});

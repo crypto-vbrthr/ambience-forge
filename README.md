@@ -2,30 +2,7 @@
 
 Ambience Forge is a system-agnostic Foundry VTT module for orchestrating finished audio assets. It controls **what plays, when it plays, how loudly it plays, and which layers run in parallel**. It intentionally does not edit audio or apply EQ, reverb, filters, pitch changes, or other sound processing.
 
-
-## Part of the Forge Suite
-
-**Ambience Forge** is part of the **Forge Suite**, a growing collection of Foundry VTT modules and add-ons built for the busy Game Master. The suite is designed to reduce preparation and bookkeeping, make common GM tasks easier, and add useful tools that help make running and playing campaigns smoother and more enjoyable.
-
-An overview of the Forge Suite, its modules, add-ons, and shared documentation is available here:
-
-**Forge Suite:** https://github.com/crypto-vbrthr/pf2e-forge-suite
-
-
-## Feedback, Bug Reports & Feature Requests
-
-Found a bug, have an idea for an improvement, or would like to suggest a new feature?
-
-Feedback is always welcome. Please feel free to open a new **GitHub Issue** at any time, whether you want to report a problem, suggest a quality-of-life improvement, propose a new feature, or share an idea for how the module could be made more useful.
-
-When reporting a bug, please include as much relevant information as possible, such as the Foundry VTT version, PF2e system version, module version, steps to reproduce the issue, and any console errors or screenshots that may help identify the problem.
-
-Suggestions and feature requests are equally welcome. Even small ideas can lead to useful improvements.
-
-**Open an issue here:** https://github.com/crypto-vbrthr/ambience-forge/issues
-
-
-## 0.2.0 feature set
+## 0.3.0-alpha.1 feature set
 
 - Layered Ambience compositions with saved master volume.
 - **Audio Tracks** for one-shot playback or seamless buffered Web Audio looping. Long one-shots use Foundry's streaming-capable `Sound` path; repeating ambience uses direct buffered Web Audio.
@@ -37,12 +14,13 @@ Suggestions and feature requests are equally welcome. Even small ideas can lead 
 - **Combinable States / Situations** inside a composition. Organize one-of-many groups such as `time-of-day`, `weather`, or `situation`; each state can activate/deactivate tracks and multiply their volume, while different groups combine.
 - **Persistent external context states** for provider modules. Weather, calendar, encounter, or atmosphere integrations can publish a semantic state once and Ambience Forge applies it to compatible ambiences now and when they start later.
 - **Scene Emitters** with position, radius, distance falloff, canvas markers, drag-and-drop movement, enable/disable, and Foundry-aware wall/door handling (`Ignore`, `Attenuate`, `Block`).
+- **Semantic Scene Emitter keys** plus synchronized temporary live activation and maximum-volume overrides, controllable by emitter ID or key without rewriting the saved emitter configuration.
 - Composition **JSON import/export** for reuse across Foundry worlds. Audio files are referenced by path and are not embedded in exports.
 - English and German localization.
 - Automated Node test suite and validation checks.
 - MIT License, maintained `CHANGELOG.md`, and a documented versioned public API.
 
-Ambience Forge 0.2.0 is the stable release of the state and integration line, built on the 0.1.0 audio-orchestration foundation. The state system is intentionally integration-first so modules such as Weather Forge or Calendar Forge can control the same composition without duplicating audio setups.
+Ambience Forge 0.3.0-alpha.1 starts the live Scene Emitter control line on top of the stable 0.2.0 state/context release. This first alpha adds semantic emitter keys and synchronized temporary emitter activation/volume controls while deliberately leaving owner arbitration and timed fades for later 0.3.0 alphas.
 
 ## Audio philosophy
 
@@ -50,7 +28,7 @@ Prepare sound files externally with the editor or audio tool of your choice. Amb
 
 ## Public API
 
-The public API is versioned independently from the module release. Ambience Forge 0.2.0 exposes API version `1.3`. See [`API.md`](API.md) for the complete integration contract.
+The public API is versioned independently from the module release. Ambience Forge 0.3.0-alpha.1 exposes API version `1.4`. See [`API.md`](API.md) for the complete integration contract.
 
 
 Other modules may access the versioned API through:
@@ -92,11 +70,16 @@ await ambienceForge.setStateForActiveAmbiences({
   owner: "calendar-forge"
 });
 
+const waterfalls = ambienceForge.getSceneEmittersByKey("waterfall");
+await ambienceForge.setSceneEmitterVolumeByKey("waterfall", 0.35);
+await ambienceForge.setSceneEmitterActiveByKey("waterfall", false);
+await ambienceForge.resetSceneEmitterLiveStateByKey("waterfall");
+
 const exported = ambienceForge.exportAmbience(id);
 const imported = await ambienceForge.importAmbience(exported);
 ```
 
-Scene-emitter methods are also available through the same API. Consumers should check `api.capabilities` rather than depending on private implementation details.
+Scene-emitter methods are also available through the same API. Scene Emitters expose a stable `key` for optional integrations. `setSceneEmitterVolume()` and `setSceneEmitterActive()` are temporary live controls; persistent emitter configuration remains the responsibility of `updateSceneEmitter()` and `setSceneEmitterEnabled()`. Key-based variants affect every matching emitter on the active Scene, which is useful for semantic groups such as several emitters sharing `torch`, `waterfall`, or `machinery`. Consumers should check `api.capabilities` rather than depending on private implementation details.
 
 Ambience Forge fires `ambienceForgeReady` when its public API is ready for integrations.
 

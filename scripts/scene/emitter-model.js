@@ -1,7 +1,8 @@
 import { MODULE_ID } from "../constants.js";
+import { slugifyKey } from "../data/schema.js";
 
 export const EMITTER_FLAG = "emitter";
-export const EMITTER_SCHEMA_VERSION = 3;
+export const EMITTER_SCHEMA_VERSION = 4;
 export const EMITTER_OBSTRUCTION_MODES = Object.freeze({
   IGNORE: "ignore",
   ATTENUATE: "attenuate",
@@ -37,6 +38,7 @@ export function normalizeEmitterData(input = {}) {
     id: String(input.id ?? input._id ?? ""),
     ambienceId: String(input.ambienceId ?? ""),
     name: String(input.name ?? ""),
+    key: slugifyKey(input.key || input.name || input.ambienceId, "emitter"),
     x: Number(input.x) || 0,
     y: Number(input.y) || 0,
     radius: Math.max(0, Number(input.radius) || 0),
@@ -55,6 +57,7 @@ export function emitterDataFromDocument(document) {
     id: document.id ?? document._id,
     ambienceId: flag.ambienceId,
     name: flag.name ?? "",
+    key: flag.key ?? flag.name ?? flag.ambienceId,
     x: document.x,
     y: document.y,
     radius: document.radius,

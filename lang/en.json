@@ -257,5 +257,7 @@
   "AMBIENCE_FORGE.Quick.ExternalControl": "External control",
   "AMBIENCE_FORGE.Quick.ControlledBy": "Controlled by {provider}",
   "AMBIENCE_FORGE.Quick.ExternalOverrideHint": "This state is supplied by another module and may be restored on its next synchronization.",
-  "AMBIENCE_FORGE.Quick.ManualControl": "External source"
+  "AMBIENCE_FORGE.Quick.ManualControl": "External source",
+  "AMBIENCE_FORGE.Emitter.ApiKey": "API key",
+  "AMBIENCE_FORGE.Emitter.ApiKeyHint": "Stable technical key for integrations. It is generated from the emitter name while left blank; multiple emitters may intentionally share the same key for group control."
 }

@@ -257,5 +257,7 @@
   "AMBIENCE_FORGE.Quick.ExternalControl": "Externe Steuerung",
   "AMBIENCE_FORGE.Quick.ControlledBy": "Gesteuert durch {provider}",
   "AMBIENCE_FORGE.Quick.ExternalOverrideHint": "Dieser Zustand wird von einem anderen Modul geliefert und kann bei der nächsten Synchronisierung wiederhergestellt werden.",
-  "AMBIENCE_FORGE.Quick.ManualControl": "Externe Quelle"
+  "AMBIENCE_FORGE.Quick.ManualControl": "Externe Quelle",
+  "AMBIENCE_FORGE.Emitter.ApiKey": "API-Schlüssel",
+  "AMBIENCE_FORGE.Emitter.ApiKeyHint": "Stabiler technischer Schlüssel für Integrationen. Solange das Feld leer bleibt, wird er aus dem Namen der Klangquelle erzeugt. Mehrere Klangquellen dürfen absichtlich denselben Schlüssel für eine gemeinsame Steuerung verwenden."
 }

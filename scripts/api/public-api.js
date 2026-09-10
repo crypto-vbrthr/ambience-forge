@@ -1,5 +1,5 @@
 import { API_VERSION } from "../constants.js";
-import { COMMANDS, executeSynchronized } from "../socket.js";
+import { COMMANDS, executeEmitterSynchronized, executeSynchronized } from "../socket.js";
 
 export function createPublicApi({ getService, getEmitterService = () => null, getModuleVersion }) {
   const service = () => {
@@ -18,7 +18,8 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
     const ids = new Set(service().getActiveAmbienceIds?.() ?? service().getState().activeAmbienceIds ?? []);
     const emitters = getEmitterService()?.getEmitters?.() ?? [];
     for (const emitter of emitters) {
-      if (emitter?.enabled === false || !emitter?.ambienceId) continue;
+      const liveState = getEmitterService()?.getEmitterLiveState?.(emitter.id);
+      if ((liveState ? !liveState.active : emitter?.enabled === false) || !emitter?.ambienceId) continue;
       ids.add(String(emitter.ambienceId));
     }
     return [...ids];
@@ -77,6 +78,8 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
       "scene-emitters-v1",
       "scene-emitter-markers-v1",
       "scene-emitter-obstruction-v1",
+      "scene-emitter-keys-v1",
+      "scene-emitter-live-control-v1",
       "import-export-v1",
       "states-v1",
       "state-discovery-v1",
@@ -226,9 +229,53 @@ export function createPublicApi({ getService, getEmitterService = () => null, ge
 
     getSceneEmitters: () => emitterService().getEmitters(),
     getSceneEmitter: (id) => emitterService().getEmitter(id),
+    getSceneEmittersByKey: (key) => emitterService().getEmittersByKey(key),
+    getSceneEmitterLiveState: (id) => emitterService().getEmitterLiveState(id),
+    getSceneEmitterLiveStates: () => emitterService().getEmitterLiveStates(),
     createSceneEmitter: (data) => emitterService().createEmitter(data),
     updateSceneEmitter: (id, data) => emitterService().updateEmitter(id, data),
     setSceneEmitterEnabled: (id, enabled) => emitterService().setEmitterEnabled(id, enabled),
+    setSceneEmitterVolume: (id, volume, { broadcast = true } = {}) => executeEmitterSynchronized(emitterService(), {
+      command: COMMANDS.EMITTER_LIVE_VOLUME,
+      emitterId: id,
+      sceneId: globalThis.canvas?.scene?.id ?? null,
+      volume
+    }, { broadcast }),
+    setSceneEmitterActive: (id, active, { broadcast = true } = {}) => executeEmitterSynchronized(emitterService(), {
+      command: COMMANDS.EMITTER_LIVE_ACTIVE,
+      emitterId: id,
+      sceneId: globalThis.canvas?.scene?.id ?? null,
+      active: Boolean(active)
+    }, { broadcast }),
+    resetSceneEmitterLiveState: (id, { broadcast = true } = {}) => executeEmitterSynchronized(emitterService(), {
+      command: COMMANDS.EMITTER_LIVE_RESET,
+      emitterId: id,
+      sceneId: globalThis.canvas?.scene?.id ?? null
+    }, { broadcast }),
+    setSceneEmitterVolumeByKey: async (key, volume, options = {}) => {
+      const ids = emitterService().getEmittersByKey(key).map((emitter) => emitter.id);
+      const results = [];
+      for (const id of ids) results.push(await executeEmitterSynchronized(emitterService(), {
+        command: COMMANDS.EMITTER_LIVE_VOLUME, emitterId: id, sceneId: globalThis.canvas?.scene?.id ?? null, volume
+      }, options));
+      return results;
+    },
+    setSceneEmitterActiveByKey: async (key, active, options = {}) => {
+      const ids = emitterService().getEmittersByKey(key).map((emitter) => emitter.id);
+      const results = [];
+      for (const id of ids) results.push(await executeEmitterSynchronized(emitterService(), {
+        command: COMMANDS.EMITTER_LIVE_ACTIVE, emitterId: id, sceneId: globalThis.canvas?.scene?.id ?? null, active: Boolean(active)
+      }, options));
+      return results;
+    },
+    resetSceneEmitterLiveStateByKey: async (key, options = {}) => {
+      const ids = emitterService().getEmittersByKey(key).map((emitter) => emitter.id);
+      const results = [];
+      for (const id of ids) results.push(await executeEmitterSynchronized(emitterService(), {
+        command: COMMANDS.EMITTER_LIVE_RESET, emitterId: id, sceneId: globalThis.canvas?.scene?.id ?? null
+      }, options));
+      return results;
+    },
     deleteSceneEmitter: (id) => emitterService().deleteEmitter(id),
     previewSceneEmitter: (id) => emitterService().previewEmitter(id),
     stopSceneEmitterPreview: () => emitterService().stopPreview(),

@@ -42,3 +42,10 @@ test("Emitter overlay dedicates the main marker to left-button dragging and keep
   assert.match(overlay, /distance < 4/);
   assert.match(overlay, /updateSceneEmitter\(drag\.emitterId, \{ x: drag\.x, y: drag\.y \}\)/);
 });
+
+
+test("Emitter editor exposes a localized semantic API key field", () => {
+  assert.match(manager, /AMBIENCE_FORGE\.Emitter\.ApiKey/);
+  assert.match(manager, /input\("key"/);
+  assert.match(manager, /bindAutoKey/);
+});

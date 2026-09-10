@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0-alpha.1 - 2026-09-10
+
+### Added
+- Stable semantic API keys for Scene Emitters. Existing emitters derive a key from their name (or referenced ambience) and new emitters expose the key in the persistent emitter editor. Multiple emitters may intentionally share one key for group control.
+- Scene Emitter discovery by key through `getSceneEmittersByKey()`.
+- Temporary Scene Emitter live state through `getSceneEmitterLiveState()` and `getSceneEmitterLiveStates()`.
+- Synchronized temporary live controls for emitter maximum volume and active state through `setSceneEmitterVolume()`, `setSceneEmitterActive()`, and `resetSceneEmitterLiveState()`.
+- Key-based live-control variants `setSceneEmitterVolumeByKey()`, `setSceneEmitterActiveByKey()`, and `resetSceneEmitterLiveStateByKey()` for controlling all matching emitters on the active Scene.
+- `scene-emitter-keys-v1` and `scene-emitter-live-control-v1` capabilities. Public API version increased compatibly to `1.4`.
+
+### Changed
+- Scene Emitter flag schema increased from 3 to 4 to persist the semantic emitter key. The Ambience composition data schema remains 5.
+- Live emitter controls affect runtime playback only and never rewrite the saved Foundry AmbientSound proxy. Persistent edits continue to use `updateSceneEmitter()` / `setSceneEmitterEnabled()`.
+- Scene Emitter live-control socket commands are synchronized independently from composition playback commands.
+
+### Development scope
+- This alpha intentionally implements the first 0.3.0 block only: emitter API keys and basic synchronized live controls. Owner arbitration and timed fades remain scheduled for a later 0.3.0 alpha.
+
 ## 0.2.0 - 2026-09-09
 
 - Promoted the successfully tested `0.2.0-rc.1` build to the stable 0.2.0 release.

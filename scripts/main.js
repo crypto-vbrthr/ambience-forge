@@ -53,7 +53,7 @@ Hooks.once("ready", async () => {
   if (canvas?.ready && canvas?.scene) await emitterService.activateScene(canvas.scene);
   registerEmitterOverlay(api);
 
-  registerSocketListener(() => service);
+  registerSocketListener(() => service, () => emitterService);
   Hooks.callAll("ambienceForgeReady", api);
   console.info(`${MODULE_ID} | ${game.i18n.localize("AMBIENCE_FORGE.Console.Ready")}`);
 });

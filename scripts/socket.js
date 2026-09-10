@@ -13,15 +13,29 @@ export const COMMANDS = Object.freeze({
   CLEAR_STATE: "clear-state",
   CONTEXT_STATE: "context-state",
   CLEAR_CONTEXT_STATE: "clear-context-state",
+  EMITTER_LIVE_VOLUME: "emitter-live-volume",
+  EMITTER_LIVE_ACTIVE: "emitter-live-active",
+  EMITTER_LIVE_RESET: "emitter-live-reset",
   STOP_ALL: "stop-all"
 });
 
-export function registerSocketListener(getService) {
+const EMITTER_COMMANDS = new Set([
+  COMMANDS.EMITTER_LIVE_VOLUME,
+  COMMANDS.EMITTER_LIVE_ACTIVE,
+  COMMANDS.EMITTER_LIVE_RESET
+]);
+
+export function registerSocketListener(getService, getEmitterService = () => null) {
   game.socket.on(SOCKET_NAME, async (message) => {
-    const service = getService();
-    if (!service || !message?.command) return;
+    if (!message?.command) return;
     try {
-      await executeCommand(service, message);
+      if (EMITTER_COMMANDS.has(message.command)) {
+        const emitterService = getEmitterService?.();
+        if (emitterService) await executeEmitterCommand(emitterService, message);
+        return;
+      }
+      const service = getService?.();
+      if (service) await executeCommand(service, message);
     } catch (error) {
       console.error(`${MODULE_ID} | socket command failed`, error);
     }
@@ -65,6 +79,19 @@ export async function executeCommand(service, message) {
   }
 }
 
+export async function executeEmitterCommand(service, message) {
+  switch (message.command) {
+    case COMMANDS.EMITTER_LIVE_VOLUME:
+      return service.setEmitterLiveVolume(message.emitterId, message.volume, message.sceneId);
+    case COMMANDS.EMITTER_LIVE_ACTIVE:
+      return service.setEmitterLiveActive(message.emitterId, message.active, message.sceneId);
+    case COMMANDS.EMITTER_LIVE_RESET:
+      return service.resetEmitterLiveState(message.emitterId, message.sceneId);
+    default:
+      throw new Error(`Unknown Ambience Forge scene emitter socket command: ${message.command}`);
+  }
+}
+
 export async function executeSynchronized(service, message, { broadcast = true } = {}) {
   if (broadcast) {
     if (!game.user?.isGM) return false;
@@ -73,4 +100,14 @@ export async function executeSynchronized(service, message, { broadcast = true }
     return result;
   }
   return executeCommand(service, message);
+}
+
+export async function executeEmitterSynchronized(service, message, { broadcast = true } = {}) {
+  if (broadcast) {
+    if (!game.user?.isGM) return false;
+    const result = await executeEmitterCommand(service, message);
+    game.socket.emit(SOCKET_NAME, message);
+    return result;
+  }
+  return executeEmitterCommand(service, message);
 }

@@ -1,3 +1,5 @@
+import { slugifyKey } from "../data/schema.js";
+
 function element(tag, { className = "", text = "", attrs = {} } = {}) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -68,6 +70,21 @@ function actionButton(action, labelKey, iconClass, attrs = {}) {
   return button;
 }
 
+function bindAutoKey(root) {
+  const nameControl = root.querySelector?.('[name="name"]');
+  const keyControl = root.querySelector?.('[name="key"]');
+  if (!nameControl || !keyControl) return;
+  let manual = Boolean(String(keyControl.value ?? "").trim());
+  keyControl.addEventListener("input", () => {
+    manual = Boolean(String(keyControl.value ?? "").trim());
+  });
+  nameControl.addEventListener("input", () => {
+    if (manual) return;
+    const generated = slugifyKey(nameControl.value, "");
+    keyControl.value = generated === "" ? "" : generated;
+  });
+}
+
 function currentSceneUnit() {
   return canvas?.scene?.grid?.units || game.i18n.localize("AMBIENCE_FORGE.Emitter.UnitsFallback");
 }
@@ -122,6 +139,11 @@ function editorContent(api, draft, isNew) {
     game.i18n.localize("AMBIENCE_FORGE.Emitter.Name"),
     input("name", draft.name ?? ""),
     game.i18n.localize("AMBIENCE_FORGE.Emitter.NameHint")
+  ));
+  wrapper.append(field(
+    game.i18n.localize("AMBIENCE_FORGE.Emitter.ApiKey"),
+    input("key", draft.key ?? ""),
+    game.i18n.localize("AMBIENCE_FORGE.Emitter.ApiKeyHint")
   ));
   wrapper.append(field(
     game.i18n.localize("AMBIENCE_FORGE.Emitter.Enabled"),
@@ -188,6 +210,7 @@ function readEditor(root, draft = {}) {
     ...draft,
     ambienceId: String(value("ambienceId") ?? draft.ambienceId ?? ""),
     name: String(value("name") ?? draft.name ?? "").trim(),
+    key: String(value("key") ?? draft.key ?? "").trim(),
     radius: Math.max(0.1, Number(value("radius") ?? draft.radius ?? 20) || 20),
     volume: Math.min(100, Math.max(0, Number(value("volumePercent") ?? Math.round((draft.volume ?? 0.7) * 100)) || 0)) / 100,
     easing: checked("easing"),
@@ -271,6 +294,7 @@ function getEmitterManagerClass() {
       this.draft = existing ? structuredClone(existing) : {
         ambienceId: firstAmbience?.id ?? "",
         name: "",
+        key: "",
         radius: Math.max(1, Number(canvas?.scene?.grid?.distance ?? 5) * 4),
         volume: 0.7,
         easing: true,
@@ -293,6 +317,7 @@ function getEmitterManagerClass() {
       content.replaceChildren(result);
       this.root = result;
       bindVolumeSliders(result);
+      bindAutoKey(result);
       this.#bind();
     }
 

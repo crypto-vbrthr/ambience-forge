@@ -295,3 +295,29 @@ Encounter Forge ------ situation = combat ---┘
 ```
 
 The module producing world state describes **what is happening**. Ambience Forge owns **what that state sounds like**.
+
+
+## Scene Emitter Integration
+
+Ambience Forge Scene Emitters may expose stable semantic keys in addition to their Foundry document IDs. Forge Suite integrations should prefer those keys when they need to address spatial ambience sources semantically.
+
+Example:
+
+```text
+Emitter name: Old Waterfall
+Emitter key:  waterfall
+```
+
+Several emitters may intentionally share the same key. This makes it possible to address a functional group rather than a specific Foundry document.
+
+```js
+const api = game.modules.get("ambience-forge")?.api;
+if (api?.capabilities?.includes("scene-emitter-live-control-v1")) {
+  await api.setSceneEmitterVolumeByKey("waterfall", 0.35);
+  await api.setSceneEmitterActiveByKey("machinery", false);
+}
+```
+
+These methods are **temporary runtime controls**. They do not rewrite the saved Scene Emitter configuration. Persistent configuration changes remain the responsibility of Ambience Forge itself or explicit calls to its documented persistent emitter methods.
+
+For the initial `scene-emitter-live-control-v1` contract, key-based methods affect all matching emitters on the active Scene. Integrations should not depend on Ambience Forge private flags or AmbientSound document IDs when a semantic key can express the intent.

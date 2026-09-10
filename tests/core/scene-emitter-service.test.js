@@ -94,6 +94,7 @@ test("scene emitter creation writes a silent Foundry AmbientSound proxy with mod
     assert.equal(createdData.walls, false);
     assert.equal(createdData.radius, 30);
     assert.equal(createdData.flags["ambience-forge"].emitter.ambienceId, "forest");
+    assert.equal(createdData.flags["ambience-forge"].emitter.key, "falls");
     assert.equal(createdData.flags["ambience-forge"].emitter.enabled, true);
     assert.equal(emitter.id, "e-created");
   } finally {
@@ -366,4 +367,125 @@ test("scene emitter applies changed ambience states without restarting the whole
   await service.tick();
   assert.equal(backend.events.filter((event) => event.type === "startLoop" && event.options.src === "rain.ogg").length, 1);
   assert.equal(service.runtimes.get("e1")?.stateRevision, 1);
+});
+
+test("scene emitter live volume overrides the saved maximum volume without persisting it", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    masterVolume: 1,
+    tracks: [{ id: "bed", name: "Bed", type: "audio", source: "forest.ogg", repeat: true, volume: 1 }]
+  });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const doc = emitterDocument();
+  doc.volume = 0.8;
+  const scene = { grid: { size: 100, distance: 5 }, sounds: new Map([["e1", doc]]) };
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  assert.equal(service.getEmitterLiveState("e1", scene).volume, 0.8);
+  await service.setEmitterLiveVolume("e1", 0.25, scene);
+  assert.equal(service.getEmitterLiveState("e1", scene).volume, 0.25);
+  assert.equal(service.getEmitter("e1", scene).volume, 0.8);
+  const volumeEvent = backend.events.filter((event) => event.type === "setVolume").at(-1);
+  assert.equal(volumeEvent.volume, 0.25);
+});
+
+test("scene emitter live active override can temporarily stop and restart an enabled emitter", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    tracks: [{ id: "bed", name: "Bed", type: "audio", source: "forest.ogg", repeat: true, volume: 1 }]
+  });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const scene = { grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  assert.equal(service.runtimes.size, 1);
+  await service.setEmitterLiveActive("e1", false, scene);
+  assert.equal(service.runtimes.size, 0);
+  assert.equal(service.getEmitter("e1", scene).enabled, true);
+  assert.equal(service.getEmitterLiveState("e1", scene).activeOverride, false);
+
+  await service.setEmitterLiveActive("e1", true, scene);
+  assert.equal(service.runtimes.size, 1);
+  assert.equal(service.getEmitterLiveState("e1", scene).active, true);
+});
+
+test("resetting scene emitter live state restores saved enabled and volume values", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({ id: "forest", name: "Forest", tracks: [] });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const doc = emitterDocument();
+  doc.volume = 0.6;
+  const scene = { grid: { size: 100, distance: 5 }, sounds: new Map([["e1", doc]]) };
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [],
+    setIntervalFn: null,
+    clearIntervalFn: null
+  });
+  await service.activateScene(scene, { monitor: false });
+  await service.setEmitterLiveVolume("e1", 0.1, scene);
+  await service.setEmitterLiveActive("e1", false, scene);
+  const restored = await service.resetEmitterLiveState("e1", scene);
+  assert.equal(restored.volume, 0.6);
+  assert.equal(restored.active, true);
+  assert.equal(restored.volumeOverride, null);
+  assert.equal(restored.activeOverride, null);
+});
+
+test("scene emitters can be discovered by semantic API key", async () => {
+  const backend = new FakeAudioBackend();
+  const ambienceService = { getAmbience: () => null };
+  const first = emitterDocument();
+  first.id = "e1";
+  first.flags["ambience-forge"].emitter.key = "waterfall";
+  const second = emitterDocument();
+  second.id = "e2";
+  second.flags["ambience-forge"].emitter.key = "waterfall";
+  const third = emitterDocument();
+  third.id = "e3";
+  third.flags["ambience-forge"].emitter.key = "forge";
+  const scene = { sounds: new Map([["e1", first], ["e2", second], ["e3", third]]) };
+  const service = new SceneEmitterService({ getAmbienceService: () => ambienceService, backend, setIntervalFn: null, clearIntervalFn: null });
+  assert.deepEqual(service.getEmittersByKey("waterfall", scene).map((emitter) => emitter.id), ["e1", "e2"]);
+});
+
+test("scene emitter live overrides are scoped by Scene as well as embedded document id", async () => {
+  const backend = new FakeAudioBackend();
+  const ambienceService = { getAmbience: () => null };
+  const a = emitterDocument();
+  const b = emitterDocument();
+  const sceneA = { id: "scene-a", sounds: new Map([["e1", a]]) };
+  const sceneB = { id: "scene-b", sounds: new Map([["e1", b]]) };
+  const scenes = new Map([[sceneA.id, sceneA], [sceneB.id, sceneB]]);
+  globalThis.game = { scenes };
+  try {
+    const service = new SceneEmitterService({ getAmbienceService: () => ambienceService, backend, setIntervalFn: null, clearIntervalFn: null });
+    await service.setEmitterLiveVolume("e1", 0.2, sceneA);
+    assert.equal(service.getEmitterLiveState("e1", sceneA).volume, 0.2);
+    assert.equal(service.getEmitterLiveState("e1", sceneB).volume, 0.5);
+    await service.setEmitterLiveActive("e1", false, "scene-b");
+    assert.equal(service.getEmitterLiveState("e1", sceneA).active, true);
+    assert.equal(service.getEmitterLiveState("e1", sceneB).active, false);
+  } finally {
+    delete globalThis.game;
+  }
 });

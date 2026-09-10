@@ -21,11 +21,11 @@ The module is intentionally optional infrastructure. Consumers should continue t
 
 ## Versioning and capabilities
 
-For Ambience Forge 0.2.0:
+For Ambience Forge 0.3.0-alpha.1:
 
 ```js
-api.version; // "1.3"
-api.getModuleVersion(); // "0.2.0"
+api.version; // "1.4"
+api.getModuleVersion(); // "0.3.0-alpha.1"
 api.capabilities; // frozen array of supported capability strings
 ```
 
@@ -54,6 +54,8 @@ Current capabilities:
 - `scene-emitters-v1`
 - `scene-emitter-markers-v1`
 - `scene-emitter-obstruction-v1`
+- `scene-emitter-keys-v1`
+- `scene-emitter-live-control-v1`
 - `import-export-v1`
 - `states-v1`
 - `state-discovery-v1`
@@ -261,6 +263,7 @@ Scene Emitters place a saved Ambience spatially on a Foundry Scene.
 ```js
 api.getSceneEmitters();
 api.getSceneEmitter(id);
+api.getSceneEmittersByKey("waterfall");
 
 await api.createSceneEmitter(data);
 await api.updateSceneEmitter(id, data);
@@ -271,7 +274,54 @@ await api.previewSceneEmitter(id);
 await api.stopSceneEmitterPreview();
 ```
 
-Emitter data supports position, radius, maximum volume, distance falloff, enabled state, and the documented obstruction modes used by the current schema: ignore, attenuate, and block. Consumers should obtain an existing emitter through `getSceneEmitter()` before updating it rather than depending on private flag storage.
+Emitter data supports position, radius, maximum volume, distance falloff, enabled state, semantic `key`, and the documented obstruction modes used by the current schema: ignore, attenuate, and block. Consumers should obtain an existing emitter through `getSceneEmitter()` before updating it rather than depending on private flag storage.
+
+### Semantic emitter keys
+
+Scene Emitters expose a stable technical `key` independent of their display name and Foundry document ID. New keys can be entered in the emitter editor and are normalized to the same lowercase hyphenated format used elsewhere in Ambience Forge. Existing emitters without a persisted key derive one from their emitter name (or referenced ambience) until next saved.
+
+```js
+const matches = api.getSceneEmittersByKey("waterfall");
+```
+
+Multiple emitters may intentionally share a key. Key-based live-control methods therefore target **all matching emitters on the active Scene**, which makes semantic group control possible without storing Foundry document IDs.
+
+### Temporary Scene Emitter live control
+
+The 0.3.0 line separates saved emitter configuration from temporary runtime control. These methods do **not** update the Foundry `AmbientSound` proxy or its flags:
+
+```js
+api.getSceneEmitterLiveState(id);
+api.getSceneEmitterLiveStates();
+
+await api.setSceneEmitterVolume(id, 0.35);
+await api.setSceneEmitterActive(id, false);
+await api.resetSceneEmitterLiveState(id);
+```
+
+`setSceneEmitterVolume()` temporarily replaces the emitter's saved maximum volume with a normalized `0..1` runtime value. `setSceneEmitterActive()` temporarily overrides the saved enabled state. `resetSceneEmitterLiveState()` clears both temporary overrides and immediately returns to the saved emitter values. Calls synchronize to connected clients by default; pass `{ broadcast: false }` for deliberate local-only tooling.
+
+The state query makes the distinction explicit:
+
+```js
+api.getSceneEmitterLiveState(id);
+// {
+//   id, key,
+//   active, volume,
+//   activeOverride, volumeOverride,
+//   baseEnabled, baseVolume
+// }
+```
+
+Key-based variants apply the same operation to every matching emitter:
+
+```js
+await api.setSceneEmitterVolumeByKey("waterfall", 0.25);
+await api.setSceneEmitterActiveByKey("machinery", false);
+await api.resetSceneEmitterLiveStateByKey("waterfall");
+```
+
+Persistent configuration still uses `updateSceneEmitter()` or `setSceneEmitterEnabled()`. Alpha.1 intentionally provides basic synchronized live state only; owner arbitration and timed fades are reserved for a later 0.3.0 alpha.
 
 ## Integration guidance
 
@@ -298,7 +348,7 @@ Hooks.once("ambienceForgeReady", async (api) => {
 
 ## Compatibility promise for API v1.x
 
-The 1.x public API is treated as an integration contract. API 1.3 extends 1.2 with persistent external context states and does not remove the earlier 1.0–1.2 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
+The 1.x public API is treated as an integration contract. API 1.4 extends 1.3 with semantic Scene Emitter keys and synchronized temporary emitter live controls and does not remove the earlier 1.0–1.3 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
 
 
 ## Multiple context groups from one provider

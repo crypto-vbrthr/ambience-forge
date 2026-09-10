@@ -124,3 +124,17 @@ test("context socket commands persist semantic context through the service", asy
     ["clear-context", "weather", { owner: "weather-forge", durationMs: 500 }]
   ]);
 });
+
+test("scene emitter live socket commands are routed to the emitter service", async () => {
+  const { executeEmitterCommand } = await import("../../scripts/socket.js");
+  const calls = [];
+  const emitterService = {
+    async setEmitterLiveVolume(id, volume) { calls.push(["volume", id, volume]); return true; },
+    async setEmitterLiveActive(id, active) { calls.push(["active", id, active]); return true; },
+    async resetEmitterLiveState(id) { calls.push(["reset", id]); return true; }
+  };
+  assert.equal(await executeEmitterCommand(emitterService, { command: COMMANDS.EMITTER_LIVE_VOLUME, emitterId: "falls", volume: 0.4 }), true);
+  assert.equal(await executeEmitterCommand(emitterService, { command: COMMANDS.EMITTER_LIVE_ACTIVE, emitterId: "falls", active: false }), true);
+  assert.equal(await executeEmitterCommand(emitterService, { command: COMMANDS.EMITTER_LIVE_RESET, emitterId: "falls" }), true);
+  assert.deepEqual(calls, [["volume", "falls", 0.4], ["active", "falls", false], ["reset", "falls"]]);
+});
