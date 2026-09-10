@@ -25,7 +25,7 @@ Suggestions and feature requests are equally welcome. Even small ideas can lead 
 **Open an issue here:** https://github.com/crypto-vbrthr/ambience-forge/issues
 
 
-## 0.3.0-rc.1 feature set
+## 0.3.0 feature set
 
 - Layered Ambience compositions with saved master volume.
 - **Audio Tracks** for one-shot playback or seamless buffered Web Audio looping. Long one-shots use Foundry's streaming-capable `Sound` path; repeating ambience uses direct buffered Web Audio.
@@ -44,7 +44,7 @@ Suggestions and feature requests are equally welcome. Even small ideas can lead 
 - Automated Node test suite and validation checks.
 - MIT License, maintained `CHANGELOG.md`, and a documented versioned public API.
 
-Ambience Forge 0.3.0-rc.1 is the feature-frozen release candidate for the 0.3.0 line. It includes the completed external Scene Emitter control block from alpha.4 and adds release-hardening around runtime lifecycle races, Scene Emitter tick serialization, and owner-safe state/context cleanup. Temporary emitter volume and active overrides retain independent owners and timed fades, while Quick Control remains viewport-bounded and preserves its scroll position during normal internal re-renders.
+Ambience Forge 0.3.0 is the stable release of the feature-frozen 0.3.0 line. It includes the completed external Scene Emitter control block from alpha.4 and the release-hardening completed in rc.1 around runtime lifecycle races, Scene Emitter tick serialization, and owner-safe state/context cleanup. Temporary emitter volume and active overrides retain independent owners and timed fades, while Quick Control remains viewport-bounded and preserves its scroll position during normal internal re-renders.
 
 ## Audio philosophy
 
@@ -52,7 +52,7 @@ Prepare sound files externally with the editor or audio tool of your choice. Amb
 
 ## Public API
 
-The public API is versioned independently from the module release. Ambience Forge 0.3.0-rc.1 exposes API version `1.6`. See [`API.md`](API.md) for the complete integration contract.
+The public API is versioned independently from the module release. Ambience Forge 0.3.0 exposes API version `1.6`. See [`API.md`](API.md) for the complete integration contract.
 
 
 Other modules may access the versioned API through:

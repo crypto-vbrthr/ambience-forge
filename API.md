@@ -21,11 +21,11 @@ The module is intentionally optional infrastructure. Consumers should continue t
 
 ## Versioning and capabilities
 
-For Ambience Forge 0.3.0-rc.1:
+For Ambience Forge 0.3.0:
 
 ```js
 api.version; // "1.6"
-api.getModuleVersion(); // "0.3.0-rc.1"
+api.getModuleVersion(); // "0.3.0"
 api.capabilities; // frozen array of supported capability strings
 ```
 

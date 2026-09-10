@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 - 2026-09-10
+
+### Release
+- Promoted the successfully regression-tested `0.3.0-rc.1` build to the stable 0.3.0 release.
+- No runtime, API, schema, or user-facing feature changes were made after the release candidate.
+- Public API remains `1.6`; Ambience data schema remains `5`.
+
 ## 0.3.0-rc.1 - 2026-09-10
 
 ### Fixed
