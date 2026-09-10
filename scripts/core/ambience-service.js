@@ -152,7 +152,7 @@ export class AmbienceService {
     this.contextStates.set(groupKey, { stateKey, owner: ownerKey });
     const compatible = this.getCompatibleAmbienceIds(groupKey, stateKey);
     for (const ambienceId of compatible) {
-      await this.setState(ambienceId, groupKey, stateKey, { owner: ownerKey, durationMs });
+      await this.setState(ambienceId, groupKey, stateKey, { owner: ownerKey, durationMs, source: "context" });
     }
     return compatible;
   }
@@ -163,14 +163,14 @@ export class AmbienceService {
     const current = this.contextStates.get(groupKey);
     if (!current) return [];
     const ownerKey = owner ? String(owner) : null;
-    if (ownerKey && current.owner && current.owner !== ownerKey) return false;
+    if (ownerKey != null && current.owner !== ownerKey) return false;
 
     this.contextStates.delete(groupKey);
     const compatible = this.getCompatibleAmbienceIds(groupKey, null);
     const cleared = [];
     for (const ambienceId of compatible) {
       const desired = this.desiredStates.get(ambienceId)?.get(groupKey);
-      if (!desired || desired.owner !== current.owner || desired.stateKey !== current.stateKey) continue;
+      if (!desired || desired.source !== "context" || desired.owner !== current.owner || desired.stateKey !== current.stateKey) continue;
       const result = await this.clearState(ambienceId, groupKey, { owner: current.owner, durationMs });
       if (result !== false) cleared.push(ambienceId);
     }
@@ -277,6 +277,17 @@ export class AmbienceService {
     if (!ambience) throw new Error(`Unknown Ambience Forge ambience: ${id}`);
     if (this.runtimes.has(id)) return false;
     const contextSelections = this.#contextSelectionsForAmbience(ambience);
+    const desired = this.#desiredMap(id);
+    for (const [groupKey, stateKey] of Object.entries(contextSelections)) {
+      if (!desired.has(groupKey)) {
+        const context = this.contextStates.get(groupKey);
+        desired.set(groupKey, {
+          stateKey,
+          owner: context?.owner ?? null,
+          source: "context"
+        });
+      }
+    }
     const explicitSelections = this.#desiredSelections(id);
     const runtime = new AmbienceRuntime({
       ambience: normalizeAmbience(ambience),
@@ -284,9 +295,9 @@ export class AmbienceService {
       schedulerFactory: this.schedulerFactory,
       stateSelections: { ...contextSelections, ...explicitSelections }
     });
-    const desired = this.desiredStates.get(id);
+    const desiredStateEntries = this.desiredStates.get(id);
     for (const group of runtime.ambience.stateGroups ?? []) {
-      const entry = desired?.get(group.key) ?? this.contextStates.get(group.key);
+      const entry = desiredStateEntries?.get(group.key) ?? this.contextStates.get(group.key);
       if (entry?.owner) runtime.stateOwners.set(group.id, entry.owner);
     }
     this.runtimes.set(id, runtime);
@@ -309,8 +320,14 @@ export class AmbienceService {
 
   async playAmbience(id) {
     if (!this.ambiences.has(id)) throw new Error(`Unknown Ambience Forge ambience: ${id}`);
+    const wasExplicit = this.explicitPlayback.has(id);
     this.explicitPlayback.add(id);
-    return this.#startRuntime(id);
+    try {
+      return await this.#startRuntime(id);
+    } catch (error) {
+      if (!wasExplicit) this.explicitPlayback.delete(id);
+      throw error;
+    }
   }
 
   async stopAmbience(id) {
@@ -325,7 +342,12 @@ export class AmbienceService {
   async requestAmbience(id, owner) {
     if (!this.ambiences.has(id)) throw new Error(`Unknown Ambience Forge ambience: ${id}`);
     const result = this.owners.request(id, owner);
-    if (result.wasEmpty) await this.#startRuntime(id);
+    try {
+      if (result.wasEmpty) await this.#startRuntime(id);
+    } catch (error) {
+      this.owners.release(id, owner);
+      throw error;
+    }
     return result.count;
   }
 
@@ -347,7 +369,7 @@ export class AmbienceService {
     return this.runtimes.get(ambienceId)?.setTrackActive(trackId, active, options) ?? false;
   }
 
-  async setState(ambienceId, groupRef, stateRef, { owner = null, durationMs = null } = {}) {
+  async setState(ambienceId, groupRef, stateRef, { owner = null, durationMs = null, source = "direct" } = {}) {
     const ambience = this.ambiences.get(ambienceId);
     if (!ambience) throw new Error(`Unknown Ambience Forge ambience: ${ambienceId}`);
     const group = findStateGroup(ambience, groupRef);
@@ -355,7 +377,11 @@ export class AmbienceService {
     const state = findAmbienceState(group, stateRef);
     if (!state) throw new Error(`Unknown Ambience Forge state: ${stateRef}`);
     const desired = this.#desiredMap(ambienceId);
-    desired.set(group.key, { stateKey: state.key, owner: owner ? String(owner) : null });
+    desired.set(group.key, {
+      stateKey: state.key,
+      owner: owner == null || owner === "" ? null : String(owner),
+      source: source === "context" ? "context" : "direct"
+    });
     this.stateRevisions.set(ambienceId, (this.stateRevisions.get(ambienceId) ?? 0) + 1);
     const runtime = this.runtimes.get(ambienceId);
     if (runtime) await runtime.setState(group.key, state.key, { owner, durationMs });
@@ -369,8 +395,9 @@ export class AmbienceService {
     if (!group) throw new Error(`Unknown Ambience Forge state group: ${groupRef}`);
     const desired = this.#desiredMap(ambienceId);
     const current = desired.get(group.key);
-    if (owner && current?.owner && current.owner !== String(owner)) return false;
-    desired.set(group.key, { stateKey: null, owner: null });
+    const ownerKey = owner == null || owner === "" ? null : String(owner);
+    if (ownerKey != null && current?.owner !== ownerKey) return false;
+    desired.set(group.key, { stateKey: null, owner: null, source: "direct" });
     this.stateRevisions.set(ambienceId, (this.stateRevisions.get(ambienceId) ?? 0) + 1);
     const runtime = this.runtimes.get(ambienceId);
     if (runtime) return runtime.clearState(group.key, { owner, durationMs });

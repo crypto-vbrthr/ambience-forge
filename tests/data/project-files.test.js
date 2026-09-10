@@ -28,7 +28,7 @@ test("distribution includes license and current changelog entry", () => {
 test("manifest and package use the current release entry point", () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "module.json"), "utf8"));
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-  assert.equal(manifest.version, "0.3.0-alpha.4");
+  assert.equal(manifest.version, "0.3.0-rc.1");
   assert.equal(pkg.version, manifest.version);
   assert.deepEqual(manifest.esmodules, ["scripts/main.js"]);
   assert.equal(fs.existsSync(path.join(root, "scripts/main.js")), true);

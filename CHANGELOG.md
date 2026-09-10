@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0-rc.1 - 2026-09-10
+
+### Fixed
+- Serialized Scene Emitter spatial ticks so interval updates, hooks, and external live-control changes cannot race into duplicate emitter runtimes. Scene deactivation now waits for any in-flight tick before tearing down playback.
+- Hardened Ambience runtime shutdown while a track is still starting. A stopped runtime no longer continues into later tracks after an asynchronous audio start completes.
+- Ownerless/manual state replacement now clears stale state ownership, so a previous provider cannot later clear a newer manual state.
+- Owner-scoped state and context cleanup now requires an exact owner match, including protection for newer ownerless/manual takeovers.
+- Persistent external context applied to a composition that is introduced or started later is now tracked as context-derived state and is released correctly when that context is cleared.
+- Failed owner-request playback now rolls back the failed ownership claim, and failed explicit playback no longer leaves a stale explicit-playback marker.
+
+### Review and validation
+- Feature freeze for the 0.3.0 line. No new user-facing feature scope was added after alpha.4.
+- Re-ran manifest, localization, import, syntax, API-contract, Foundry V14 UI-contract, playback, state, emitter, fade, and regression validation.
+- Expanded the automated suite from 166 to 174 tests with lifecycle, ownership, context cleanup, and concurrent Scene Emitter tick regressions.
+- Public API remains `1.6`; Ambience data schema remains `5`; Scene Emitter persistent storage remains unchanged.
+
 ## 0.3.0-alpha.4 - 2026-09-10
 
 ### Added

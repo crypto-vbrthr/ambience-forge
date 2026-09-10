@@ -247,7 +247,7 @@ region-forge
 encounter-forge
 ```
 
-Ownership prevents a module from clearing a state that has since been replaced by another owner.
+Ownership prevents a module from clearing a state that has since been replaced by another owner. An ownerless/manual replacement is also authoritative for cleanup purposes: a previous provider cannot later clear that newer manual value with its old owner key.
 
 ## Optional dependency
 

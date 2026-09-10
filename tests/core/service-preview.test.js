@@ -241,3 +241,108 @@ test("state owner cannot clear a state that was replaced by another owner", asyn
   await service.playAmbience("a");
   assert.equal(service.getState().ambienceStates.a.weather, "storm");
 });
+
+test("manual state takeover clears stale ownership and cannot be released by the previous owner", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{
+    id: "a", name: "Forest", tracks: [{ id: "wind", name: "Wind", type: "audio", source: "wind.ogg", repeat: true }],
+    stateGroups: [{ id: "weather-group", key: "weather", name: "Weather", states: [
+      { id: "rain-state", key: "rain", name: "Rain" },
+      { id: "storm-state", key: "storm", name: "Storm" }
+    ] }]
+  }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+  await service.playAmbience("a");
+
+  await service.setState("a", "weather", "rain", { owner: "weather-forge" });
+  await service.setState("a", "weather", "storm");
+
+  assert.equal(service.getState().ambienceStateOwners.a.weather, undefined);
+  assert.equal(await service.clearState("a", "weather", { owner: "weather-forge" }), false);
+  assert.equal(service.getState().ambienceStates.a.weather, "storm");
+});
+
+test("context state applied to a later composition is released cleanly when the context is cleared", async () => {
+  const backend = new FakeAudioBackend();
+  const service = new AmbienceService({ store: new MemoryStore(), backend });
+  await service.initialize();
+  await service.setContextState("weather", "storm", { owner: "weather-forge" });
+
+  await service.upsertAmbience({
+    id: "late", name: "Late Forest", tracks: [{ id: "wind", name: "Wind", type: "audio", source: "wind.ogg", repeat: true }],
+    stateGroups: [{ id: "weather-group", key: "weather", name: "Weather", states: [
+      { id: "storm-state", key: "storm", name: "Storm" }
+    ] }]
+  });
+  await service.playAmbience("late");
+  assert.equal(service.getState().ambienceStates.late.weather, "storm");
+  assert.equal(service.getState().ambienceStateOwners.late.weather, "weather-forge");
+
+  const cleared = await service.clearContextState("weather", { owner: "weather-forge" });
+  assert.deepEqual(cleared, ["late"]);
+  assert.equal(service.getState().ambienceStates.late.weather, null);
+  assert.deepEqual(service.getContextStates(), {});
+});
+
+test("an owner cannot clear a context state after a manual ownerless takeover", async () => {
+  const backend = new FakeAudioBackend();
+  const store = new MemoryStore([{
+    id: "a", name: "Forest", tracks: [],
+    stateGroups: [{ id: "weather-group", key: "weather", name: "Weather", states: [
+      { id: "rain-state", key: "rain", name: "Rain" },
+      { id: "storm-state", key: "storm", name: "Storm" }
+    ] }]
+  }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+
+  await service.setContextState("weather", "rain", { owner: "weather-forge" });
+  await service.setContextState("weather", "storm");
+
+  assert.equal(await service.clearContextState("weather", { owner: "weather-forge" }), false);
+  assert.deepEqual(service.getContextStates(), { weather: { state: "storm", owner: null } });
+});
+
+test("failed owner-request playback rolls back ownership so a later retry can start", async () => {
+  let attempts = 0;
+  class FlakyBackend extends FakeAudioBackend {
+    async startLoop(options) {
+      attempts += 1;
+      if (attempts === 1) throw new Error("temporary audio failure");
+      return super.startLoop(options);
+    }
+  }
+
+  const backend = new FlakyBackend();
+  const store = new MemoryStore([{
+    id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "rain.ogg", repeat: true, fadeOutMs: 0 }]
+  }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+
+  await assert.rejects(service.requestAmbience("a", "weather-forge"), /temporary audio failure/);
+  assert.equal(service.getState().owners.a, undefined);
+  assert.deepEqual(service.getState().activeAmbienceIds, []);
+
+  assert.equal(await service.requestAmbience("a", "weather-forge"), 1);
+  assert.equal(attempts, 2);
+  assert.deepEqual(service.getState().activeAmbienceIds, ["a"]);
+});
+
+test("failed explicit playback does not leave a stale explicit-playback marker", async () => {
+  class FailingBackend extends FakeAudioBackend {
+    async startLoop() { throw new Error("broken audio"); }
+  }
+
+  const backend = new FailingBackend();
+  const store = new MemoryStore([{
+    id: "a", name: "Rain", tracks: [{ id: "t", name: "Rain", type: "audio", source: "rain.ogg", repeat: true }]
+  }]);
+  const service = new AmbienceService({ store, backend });
+  await service.initialize();
+
+  await assert.rejects(service.playAmbience("a"), /broken audio/);
+  assert.equal(service.explicitPlayback.has("a"), false);
+  assert.deepEqual(service.getState().activeAmbienceIds, []);
+});

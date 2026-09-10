@@ -294,3 +294,44 @@ test("switching states changes volume and activation with the state transition",
   assert.equal(owlStop.options.fadeOutMs, 4500);
   assert.equal(rainStart.options.fadeInMs, 4500);
 });
+
+test("runtime stop during an in-flight track start prevents later tracks from starting", async () => {
+  let releaseStart;
+  let enteredStart;
+  const entered = new Promise((resolve) => { enteredStart = resolve; });
+  const gate = new Promise((resolve) => { releaseStart = resolve; });
+
+  class DelayedBackend extends FakeAudioBackend {
+    async startLoop(options) {
+      if (options.src === "slow.ogg") {
+        enteredStart();
+        await gate;
+      }
+      return super.startLoop(options);
+    }
+  }
+
+  const backend = new DelayedBackend();
+  const runtime = new AmbienceRuntime({
+    ambience: normalizeAmbience({
+      id: "lifecycle",
+      name: "Lifecycle",
+      tracks: [
+        { id: "slow", name: "Slow", type: "audio", source: "slow.ogg", repeat: true, fadeOutMs: 0 },
+        { id: "later", name: "Later", type: "audio", source: "later.ogg", repeat: true, fadeOutMs: 0 }
+      ]
+    }),
+    backend
+  });
+
+  const starting = runtime.start();
+  await entered;
+  const stopping = runtime.stop();
+  releaseStart();
+  await Promise.all([starting, stopping]);
+
+  const starts = backend.events.filter((event) => event.type === "startLoop").map((event) => event.options.src);
+  assert.deepEqual(starts, ["slow.ogg"]);
+  assert.equal(runtime.running, false);
+  assert.equal(runtime.controllers.size, 0);
+});

@@ -21,11 +21,11 @@ The module is intentionally optional infrastructure. Consumers should continue t
 
 ## Versioning and capabilities
 
-For Ambience Forge 0.3.0-alpha.4:
+For Ambience Forge 0.3.0-rc.1:
 
 ```js
 api.version; // "1.6"
-api.getModuleVersion(); // "0.3.0-alpha.4"
+api.getModuleVersion(); // "0.3.0-rc.1"
 api.capabilities; // frozen array of supported capability strings
 ```
 
@@ -153,7 +153,7 @@ Each state may:
 
 Volume factors from simultaneously active state groups multiply. For example, a base track volume of `0.6`, a Night factor of `0.5`, and a Rain factor of `0.8` resolve to `0.24` before composition master volume and spatial attenuation. Live per-track volume from Quick Control remains the base for these factors.
 
-`getState()` exposes active state selections under `ambienceStates` using group/state keys and the most recent state owner under `ambienceStateOwners`. `setState()` and `clearState()` accept optional `durationMs` and `broadcast` options in addition to `owner`.
+`getState()` exposes active state selections under `ambienceStates` using group/state keys and the most recent state owner under `ambienceStateOwners`. `setState()` and `clearState()` accept optional `durationMs` and `broadcast` options in addition to `owner`. A later ownerless/manual `setState()` deliberately takes over the state and clears provider ownership; a previous provider can no longer remove that newer manual value with an owner-scoped `clearState()`.
 
 ### Semantic discovery and key-based control
 
@@ -232,7 +232,7 @@ await api.clearContextState({
 });
 ```
 
-Context ownership protects cleanup from unrelated callers. A clear request with a different owner is ignored. Per-composition manual changes remain possible and can temporarily override the current context until the provider publishes a new context state. Context is runtime/session state rather than exported composition data; provider modules should re-publish their current state after `ambienceForgeReady` or Foundry `ready`.
+Context ownership protects cleanup from unrelated callers. A clear request with a different owner is ignored, and an owner-scoped clear also cannot remove a newer ownerless/manual context takeover. Per-composition manual changes remain possible and can temporarily override the current context until the provider publishes a new context state. Context-derived state is tracked for compositions introduced or started later so clearing the context releases those inherited values cleanly. Context is runtime/session state rather than exported composition data; provider modules should re-publish their current state after `ambienceForgeReady` or Foundry `ready`.
 
 See [`FORGE_SUITE_INTEGRATION.md`](FORGE_SUITE_INTEGRATION.md) for the recommended Forge Suite key conventions and responsibility boundaries.
 

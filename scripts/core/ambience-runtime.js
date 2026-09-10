@@ -43,6 +43,7 @@ export class AmbienceRuntime {
     try {
       const resolved = this.#resolvedTracks();
       for (const track of this.ambience.tracks ?? []) {
+        if (!this.running) break;
         const controller = createTrackController({
           track: globalThis.structuredClone ? globalThis.structuredClone(track) : JSON.parse(JSON.stringify(track)),
           backend: this.backend,
@@ -53,6 +54,11 @@ export class AmbienceRuntime {
         controller.track.volume = state?.volume ?? track.volume ?? 1;
         this.controllers.set(track.id, controller);
         if (state?.active) await controller.start();
+        if (!this.running) {
+          try { await controller.stop({ fadeOutMs: 0 }); } catch {}
+          this.controllers.delete(track.id);
+          break;
+        }
       }
     } catch (error) {
       try { await this.stop(); } catch {}
@@ -61,7 +67,7 @@ export class AmbienceRuntime {
   }
 
   async stop() {
-    if (!this.running) return;
+    if (!this.running && !this.controllers.size) return;
     this.running = false;
     await Promise.all([...this.controllers.values()].map((controller) => controller.stop()));
     this.controllers.clear();
@@ -166,7 +172,8 @@ export class AmbienceRuntime {
     const state = findAmbienceState(group, stateRef);
     if (!state) throw new Error(`Unknown Ambience Forge state: ${stateRef}`);
     this.stateSelections.set(group.id, state.id);
-    if (owner) this.stateOwners.set(group.id, String(owner));
+    if (owner == null || owner === "") this.stateOwners.delete(group.id);
+    else this.stateOwners.set(group.id, String(owner));
     const transitionMs = durationMs == null ? transitionForState(this.ambience, group, state) : Math.max(0, Number(durationMs) || 0);
     await this.#applyResolvedState(transitionMs);
     return state.key;

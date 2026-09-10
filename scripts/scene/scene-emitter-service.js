@@ -140,6 +140,9 @@ export class SceneEmitterService {
     this.previewRuntime = null;
     this.liveControls = new Map();
     this.liveTransitions = new Map();
+    this.tickPromise = null;
+    this.tickRequested = false;
+    this.deactivating = false;
   }
 
 
@@ -248,15 +251,22 @@ export class SceneEmitterService {
   }
 
   async deactivateScene() {
+    this.deactivating = true;
     if (this.timer != null && this.clearIntervalFn) this.clearIntervalFn(this.timer);
     this.timer = null;
-    for (const key of [...this.liveTransitions.keys()]) this.#clearLiveTransition(key);
-    const runtimes = [...this.runtimes.values()].map((entry) => entry.runtime);
-    this.runtimes.clear();
-    this.failures.clear();
-    await Promise.all(runtimes.map((runtime) => runtime.stop()));
-    await this.stopPreview();
-    this.scene = null;
+    this.tickRequested = false;
+    try {
+      if (this.tickPromise) await this.tickPromise;
+      for (const key of [...this.liveTransitions.keys()]) this.#clearLiveTransition(key);
+      const runtimes = [...this.runtimes.values()].map((entry) => entry.runtime);
+      this.runtimes.clear();
+      this.failures.clear();
+      await Promise.all(runtimes.map((runtime) => runtime.stop()));
+      await this.stopPreview();
+    } finally {
+      this.scene = null;
+      this.deactivating = false;
+    }
   }
 
   getEmitters(scene = this.scene ?? globalThis.canvas?.scene) {
@@ -490,6 +500,28 @@ export class SceneEmitterService {
   }
 
   async tick() {
+    if (this.deactivating) {
+      if (this.tickPromise) await this.tickPromise;
+      return;
+    }
+    this.tickRequested = true;
+    if (this.tickPromise) return this.tickPromise;
+
+    this.tickPromise = (async () => {
+      while (this.tickRequested && !this.deactivating) {
+        this.tickRequested = false;
+        await this.#tickOnce();
+      }
+    })();
+
+    try {
+      return await this.tickPromise;
+    } finally {
+      this.tickPromise = null;
+    }
+  }
+
+  async #tickOnce() {
     const scene = this.scene ?? globalThis.canvas?.scene;
     if (!scene) return;
     const ambienceService = this.getAmbienceService?.();

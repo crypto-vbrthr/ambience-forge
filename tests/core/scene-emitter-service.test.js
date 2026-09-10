@@ -668,3 +668,85 @@ test("owner-scoped reset can fade from a temporary disabled state back to saved 
   assert.equal(fade.volume, 0.5);
   assert.equal(fade.options.durationMs, 600);
 });
+
+test("concurrent scene emitter ticks are coalesced and do not start duplicate runtimes", async () => {
+  let releaseStart;
+  let enteredStart;
+  const entered = new Promise((resolve) => { enteredStart = resolve; });
+  const gate = new Promise((resolve) => { releaseStart = resolve; });
+
+  class DelayedBackend extends FakeAudioBackend {
+    async startLoop(options) {
+      enteredStart();
+      await gate;
+      return super.startLoop(options);
+    }
+  }
+
+  const backend = new DelayedBackend();
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    tracks: [{ id: "bed", name: "Bed", type: "audio", source: "forest.ogg", repeat: true, volume: 1, fadeOutMs: 0 }]
+  });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const scene = { id: "scene-a", grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null
+  });
+
+  const activating = service.activateScene(scene, { monitor: false });
+  await entered;
+  const tickA = service.tick();
+  const tickB = service.tick();
+  releaseStart();
+  await Promise.all([activating, tickA, tickB]);
+
+  assert.equal(backend.events.filter((event) => event.type === "startLoop").length, 1);
+  assert.equal(service.runtimes.size, 1);
+});
+
+test("scene deactivation waits for an in-flight tick and leaves no emitter runtime behind", async () => {
+  let releaseStart;
+  let enteredStart;
+  const entered = new Promise((resolve) => { enteredStart = resolve; });
+  const gate = new Promise((resolve) => { releaseStart = resolve; });
+
+  class DelayedBackend extends FakeAudioBackend {
+    async startLoop(options) {
+      enteredStart();
+      await gate;
+      return super.startLoop(options);
+    }
+  }
+
+  const backend = new DelayedBackend();
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    tracks: [{ id: "bed", name: "Bed", type: "audio", source: "forest.ogg", repeat: true, volume: 1, fadeOutMs: 0 }]
+  });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const scene = { id: "scene-a", grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null
+  });
+
+  const activating = service.activateScene(scene, { monitor: false });
+  await entered;
+  const deactivating = service.deactivateScene();
+  releaseStart();
+  await Promise.all([activating, deactivating]);
+
+  assert.equal(service.runtimes.size, 0);
+  assert.equal(service.scene, null);
+  assert.ok(backend.events.some((event) => event.type === "stop"));
+});
