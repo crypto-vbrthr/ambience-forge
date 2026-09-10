@@ -21,11 +21,11 @@ The module is intentionally optional infrastructure. Consumers should continue t
 
 ## Versioning and capabilities
 
-For Ambience Forge 0.3.0-alpha.3:
+For Ambience Forge 0.3.0-alpha.4:
 
 ```js
-api.version; // "1.5"
-api.getModuleVersion(); // "0.3.0-alpha.3"
+api.version; // "1.6"
+api.getModuleVersion(); // "0.3.0-alpha.4"
 api.capabilities; // frozen array of supported capability strings
 ```
 
@@ -57,6 +57,8 @@ Current capabilities:
 - `scene-emitter-obstruction-v1`
 - `scene-emitter-keys-v1`
 - `scene-emitter-live-control-v1`
+- `scene-emitter-owner-control-v1`
+- `scene-emitter-fades-v1`
 - `import-export-v1`
 - `states-v1`
 - `state-discovery-v1`
@@ -237,7 +239,7 @@ See [`FORGE_SUITE_INTEGRATION.md`](FORGE_SUITE_INTEGRATION.md) for the recommend
 
 ## Track runtime status
 
-API 1.5 exposes read-only runtime observability for active tracks. This is local playback state and does not trigger socket traffic or persist anything to the world.
+API 1.5 introduced read-only runtime observability for active tracks. This is local playback state and does not trigger socket traffic or persist anything to the world.
 
 ```js
 const status = api.getTrackRuntimeStatus(ambienceId, trackId);
@@ -340,12 +342,14 @@ The 0.3.0 line separates saved emitter configuration from temporary runtime cont
 api.getSceneEmitterLiveState(id);
 api.getSceneEmitterLiveStates();
 
-await api.setSceneEmitterVolume(id, 0.35);
-await api.setSceneEmitterActive(id, false);
-await api.resetSceneEmitterLiveState(id);
+await api.setSceneEmitterVolume(id, 0.35, { owner: "weather-forge", durationMs: 1200 });
+await api.setSceneEmitterActive(id, false, { owner: "weather-forge", durationMs: 1500 });
+await api.resetSceneEmitterLiveState(id, { owner: "weather-forge", durationMs: 1000 });
 ```
 
-`setSceneEmitterVolume()` temporarily replaces the emitter's saved maximum volume with a normalized `0..1` runtime value. `setSceneEmitterActive()` temporarily overrides the saved enabled state. `resetSceneEmitterLiveState()` clears both temporary overrides and immediately returns to the saved emitter values. Calls synchronize to connected clients by default; pass `{ broadcast: false }` for deliberate local-only tooling.
+`setSceneEmitterVolume()` temporarily replaces the emitter's saved maximum volume with a normalized `0..1` runtime value. `setSceneEmitterActive()` temporarily overrides the saved enabled state. Both methods accept optional `{ owner, durationMs, broadcast }`. The volume and active dimensions remember their owners independently. A later setter may deliberately replace an earlier owner's value, while `resetSceneEmitterLiveState({ owner })` releases only overrides that are still owned by that provider. A reset without an owner is a manual/global reset and clears all temporary emitter overrides. Calls synchronize to connected clients by default; pass `{ broadcast: false }` for deliberate local-only tooling.
+
+`durationMs` defaults to `0`. Volume changes ramp to the new target. Activation with a duration starts a newly audible emitter at zero master gain and fades it to its current spatially resolved target. Deactivation fades to zero and keeps the runtime alive until the transition completes before stopping it. Reset applies the same transition rules while returning to the saved enabled/volume values. Spatial distance and wall/door attenuation remain authoritative during live fades.
 
 The state query makes the distinction explicit:
 
@@ -355,6 +359,7 @@ api.getSceneEmitterLiveState(id);
 //   id, key,
 //   active, volume,
 //   activeOverride, volumeOverride,
+//   activeOwner, volumeOwner,
 //   baseEnabled, baseVolume
 // }
 ```
@@ -362,12 +367,12 @@ api.getSceneEmitterLiveState(id);
 Key-based variants apply the same operation to every matching emitter:
 
 ```js
-await api.setSceneEmitterVolumeByKey("waterfall", 0.25);
-await api.setSceneEmitterActiveByKey("machinery", false);
-await api.resetSceneEmitterLiveStateByKey("waterfall");
+await api.setSceneEmitterVolumeByKey("waterfall", 0.25, { owner: "weather-forge", durationMs: 1000 });
+await api.setSceneEmitterActiveByKey("machinery", false, { owner: "encounter-forge", durationMs: 750 });
+await api.resetSceneEmitterLiveStateByKey("waterfall", { owner: "weather-forge", durationMs: 500 });
 ```
 
-Persistent configuration still uses `updateSceneEmitter()` or `setSceneEmitterEnabled()`. The current 0.3.0 alpha line still reserves owner arbitration and timed emitter fades for a later step.
+Persistent configuration still uses `updateSceneEmitter()` or `setSceneEmitterEnabled()`. Owner and fade metadata are intentionally runtime-only and are not written to the Foundry `AmbientSound` proxy.
 
 ## Integration guidance
 
@@ -394,7 +399,7 @@ Hooks.once("ambienceForgeReady", async (api) => {
 
 ## Compatibility promise for API v1.x
 
-The 1.x public API is treated as an integration contract. API 1.5 extends 1.4 with read-only track runtime status and does not remove the earlier 1.0–1.4 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
+The 1.x public API is treated as an integration contract. API 1.6 extends 1.5 with owner-aware Scene Emitter live control and timed emitter fades and does not remove the earlier 1.0–1.5 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
 
 
 ## Multiple context groups from one provider

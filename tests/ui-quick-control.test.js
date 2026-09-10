@@ -108,3 +108,10 @@ test("Quick Control progress styling is compact and non-interactive", () => {
   assert.match(css, /pointer-events:\s*none/);
   assert.match(css, /height:\s*0\.45rem/);
 });
+
+test("Quick Control has viewport-bounded vertical scrolling and preserves scroll position on rerender", () => {
+  assert.match(css, /ambience-forge-quick-window[\s\S]*window-content[\s\S]*max-height:\s*70vh/);
+  assert.match(css, /ambience-forge-quick-window[\s\S]*overflow-y:\s*auto/);
+  assert.match(source, /const scrollTop = content\.scrollTop/);
+  assert.match(source, /content\.scrollTop = scrollTop/);
+});

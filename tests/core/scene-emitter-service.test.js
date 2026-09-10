@@ -489,3 +489,182 @@ test("scene emitter live overrides are scoped by Scene as well as embedded docum
     delete globalThis.game;
   }
 });
+
+test("scene emitter live owners are independent and owner-scoped reset cannot erase a newer override", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({ id: "forest", name: "Forest", tracks: [] });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const doc = emitterDocument();
+  doc.volume = 0.6;
+  const scene = { id: "scene-a", grid: { size: 100, distance: 5 }, sounds: new Map([["e1", doc]]) };
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [],
+    setIntervalFn: null,
+    clearIntervalFn: null
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  await service.setEmitterLiveVolume("e1", 0.25, scene, { owner: "weather-forge" });
+  await service.setEmitterLiveActive("e1", false, scene, { owner: "encounter-forge" });
+  let state = service.getEmitterLiveState("e1", scene);
+  assert.equal(state.volumeOwner, "weather-forge");
+  assert.equal(state.activeOwner, "encounter-forge");
+
+  const partial = await service.resetEmitterLiveState("e1", scene, { owner: "weather-forge" });
+  assert.equal(partial.volumeOverride, null);
+  assert.equal(partial.volume, 0.6);
+  assert.equal(partial.activeOverride, false);
+  assert.equal(partial.activeOwner, "encounter-forge");
+
+  await service.setEmitterLiveVolume("e1", 0.4, scene, { owner: "weather-forge" });
+  await service.setEmitterLiveVolume("e1", 0.75, scene); // deliberate manual takeover
+  assert.equal(await service.resetEmitterLiveState("e1", scene, { owner: "weather-forge" }), false);
+  state = service.getEmitterLiveState("e1", scene);
+  assert.equal(state.volume, 0.75);
+  assert.equal(state.volumeOwner, null);
+  assert.equal(state.activeOwner, "encounter-forge");
+});
+
+test("scene emitter live volume uses the requested fade duration", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    masterVolume: 1,
+    tracks: [{ id: "bed", name: "Bed", type: "audio", source: "forest.ogg", repeat: true, volume: 1, fadeInMs: 0 }]
+  });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const scene = { id: "scene-a", grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  let now = 1000;
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null,
+    setTimeoutFn: () => 1,
+    clearTimeoutFn: () => {},
+    nowFn: () => now
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  await service.setEmitterLiveVolume("e1", 0.2, scene, { owner: "weather-forge", durationMs: 800 });
+  const faded = backend.events.filter((event) => event.type === "setVolume").at(-1);
+  assert.equal(faded.volume, 0.2);
+  assert.equal(faded.options.durationMs, 800);
+  assert.equal(service.getEmitterLiveState("e1", scene).volumeOwner, "weather-forge");
+
+  now = 1400;
+  await service.tick();
+  const retargeted = backend.events.filter((event) => event.type === "setVolume").at(-1);
+  assert.equal(retargeted.volume, 0.2);
+  assert.equal(retargeted.options.durationMs, 400);
+});
+
+test("scene emitter active fade-out keeps playback alive until the transition completes", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    tracks: [{ id: "bed", name: "Bed", type: "audio", source: "forest.ogg", repeat: true, volume: 1, fadeInMs: 0, fadeOutMs: 0 }]
+  });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const scene = { id: "scene-a", grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  let now = 1000;
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null,
+    setTimeoutFn: () => 1,
+    clearTimeoutFn: () => {},
+    nowFn: () => now
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  await service.setEmitterLiveActive("e1", false, scene, { owner: "encounter-forge", durationMs: 1200 });
+  assert.equal(service.getEmitterLiveState("e1", scene).active, false);
+  assert.equal(service.getEmitterLiveState("e1", scene).activeOwner, "encounter-forge");
+  assert.equal(service.runtimes.size, 1);
+  const fade = backend.events.filter((event) => event.type === "setVolume").at(-1);
+  assert.equal(fade.volume, 0);
+  assert.equal(fade.options.durationMs, 1200);
+
+  now = 2199;
+  await service.tick();
+  assert.equal(service.runtimes.size, 1);
+  now = 2200;
+  await service.tick();
+  assert.equal(service.runtimes.size, 0);
+  assert.ok(backend.events.some((event) => event.type === "stop"));
+});
+
+test("scene emitter active fade-in starts at zero master gain and ramps to the spatial target", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    tracks: [{ id: "bed", name: "Bed", type: "audio", source: "forest.ogg", repeat: true, volume: 1, fadeInMs: 0, fadeOutMs: 0 }]
+  });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const scene = { id: "scene-a", grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  let now = 1000;
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null,
+    setTimeoutFn: () => 1,
+    clearTimeoutFn: () => {},
+    nowFn: () => now
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  await service.setEmitterLiveActive("e1", false, scene);
+  backend.events.length = 0;
+  await service.setEmitterLiveActive("e1", true, scene, { owner: "weather-forge", durationMs: 1000 });
+
+  const start = backend.events.find((event) => event.type === "startLoop");
+  assert.equal(start.options.volume, 0);
+  const fade = backend.events.filter((event) => event.type === "setVolume").at(-1);
+  assert.equal(fade.volume, 0.5);
+  assert.equal(fade.options.durationMs, 1000);
+  assert.equal(service.runtimes.size, 1);
+});
+
+test("owner-scoped reset can fade from a temporary disabled state back to saved activation", async () => {
+  const backend = new FakeAudioBackend();
+  const ambience = normalizeAmbience({
+    id: "forest",
+    name: "Forest",
+    tracks: [{ id: "bed", name: "Bed", type: "audio", source: "forest.ogg", repeat: true, volume: 1, fadeInMs: 0, fadeOutMs: 0 }]
+  });
+  const ambienceService = { getAmbience: () => structuredClone(ambience) };
+  const scene = { id: "scene-a", grid: { size: 100, distance: 5 }, sounds: new Map([["e1", emitterDocument()]]) };
+  const service = new SceneEmitterService({
+    getAmbienceService: () => ambienceService,
+    backend,
+    getListeners: () => [{ x: 0, y: 0 }],
+    setIntervalFn: null,
+    clearIntervalFn: null,
+    setTimeoutFn: () => 1,
+    clearTimeoutFn: () => {},
+    nowFn: () => 1000
+  });
+
+  await service.activateScene(scene, { monitor: false });
+  await service.setEmitterLiveActive("e1", false, scene, { owner: "weather-forge" });
+  backend.events.length = 0;
+  const restored = await service.resetEmitterLiveState("e1", scene, { owner: "weather-forge", durationMs: 600 });
+  assert.equal(restored.active, true);
+  assert.equal(restored.activeOverride, null);
+  const start = backend.events.find((event) => event.type === "startLoop");
+  assert.equal(start.options.volume, 0);
+  const fade = backend.events.filter((event) => event.type === "setVolume").at(-1);
+  assert.equal(fade.volume, 0.5);
+  assert.equal(fade.options.durationMs, 600);
+});

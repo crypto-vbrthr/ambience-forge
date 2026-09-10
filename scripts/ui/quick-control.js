@@ -459,7 +459,9 @@ function getQuickAppClass() {
     }
 
     _replaceHTML(result, content) {
+      const scrollTop = content.scrollTop;
       content.replaceChildren(result);
+      content.scrollTop = scrollTop;
     }
 
     _refreshRuntimeStatuses() {

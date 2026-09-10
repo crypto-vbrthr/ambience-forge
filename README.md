@@ -25,7 +25,7 @@ Suggestions and feature requests are equally welcome. Even small ideas can lead 
 **Open an issue here:** https://github.com/crypto-vbrthr/ambience-forge/issues
 
 
-## 0.3.0-alpha.3 feature set
+## 0.3.0-alpha.4 feature set
 
 - Layered Ambience compositions with saved master volume.
 - **Audio Tracks** for one-shot playback or seamless buffered Web Audio looping. Long one-shots use Foundry's streaming-capable `Sound` path; repeating ambience uses direct buffered Web Audio.
@@ -33,18 +33,18 @@ Suggestions and feature requests are equally welcome. Even small ideas can lead 
 - **Sequence Tracks** with sequential or randomized order and configurable pauses.
 - **Intensity Tracks** with ordered variants and crossfades between intensity levels.
 - Persistent `ApplicationV2` editors with inline Foundry audio file pickers and non-destructive preview.
-- **Quick Control** for temporary live master volume, per-track volume, track start/stop, intensity changes, live state/situation switching, and per-track runtime feedback with countdowns and progress bars. Ambience Forge also respects Foundry's Environment master-volume control.
+- **Quick Control** for temporary live master volume, per-track volume, track start/stop, intensity changes, live state/situation switching, and per-track runtime feedback with countdowns and progress bars. Long Quick Control contents scroll vertically within the viewport. Ambience Forge also respects Foundry's Environment master-volume control.
 - **Combinable States / Situations** inside a composition. Organize one-of-many groups such as `time-of-day`, `weather`, or `situation`; each state can activate/deactivate tracks and multiply their volume, while different groups combine.
 - **Persistent external context states** for provider modules. Weather, calendar, encounter, or atmosphere integrations can publish a semantic state once and Ambience Forge applies it to compatible ambiences now and when they start later.
 - **Scene Emitters** with position, radius, distance falloff, canvas markers, drag-and-drop movement, enable/disable, and Foundry-aware wall/door handling (`Ignore`, `Attenuate`, `Block`).
-- **Semantic Scene Emitter keys** plus synchronized temporary live activation and maximum-volume overrides, controllable by emitter ID or key without rewriting the saved emitter configuration.
+- **Semantic Scene Emitter keys** plus synchronized temporary live activation and maximum-volume overrides, controllable by emitter ID or key without rewriting the saved emitter configuration. Live overrides support provider ownership and timed fades.
 - **Track runtime status** for integrations and Quick Control: playing/waiting/crossfading state, current source, timing/progress, Random overlap, Sequence position, loop-cycle progress, and Intensity variant transitions.
 - Composition **JSON import/export** for reuse across Foundry worlds. Audio files are referenced by path and are not embedded in exports.
 - English and German localization.
 - Automated Node test suite and validation checks.
 - MIT License, maintained `CHANGELOG.md`, and a documented versioned public API.
 
-Ambience Forge 0.3.0-alpha.3 connects the runtime-observability layer to Quick Control. Active tracks now show whether they are playing, waiting, finished, or crossfading, together with the current file or variant, remaining time, Sequence position, Random next-event information, and a read-only progress bar where finite timing is available. The display refreshes locally every 500 ms and does not generate socket traffic or alter playback.
+Ambience Forge 0.3.0-alpha.4 completes the planned external Scene Emitter control block. Temporary emitter volume and active overrides can now carry independent owners and use timed fades, including fade-in, fade-out, and reset-to-saved-state transitions. Owner-scoped resets cannot erase a newer override from another provider or a manual ownerless override. Quick Control also gains a viewport-bounded vertical scrollbar and keeps its scroll position during normal internal re-renders.
 
 ## Audio philosophy
 
@@ -52,7 +52,7 @@ Prepare sound files externally with the editor or audio tool of your choice. Amb
 
 ## Public API
 
-The public API is versioned independently from the module release. Ambience Forge 0.3.0-alpha.3 exposes API version `1.5`. See [`API.md`](API.md) for the complete integration contract.
+The public API is versioned independently from the module release. Ambience Forge 0.3.0-alpha.4 exposes API version `1.6`. See [`API.md`](API.md) for the complete integration contract.
 
 
 Other modules may access the versioned API through:
@@ -98,15 +98,15 @@ await ambienceForge.setStateForActiveAmbiences({
 });
 
 const waterfalls = ambienceForge.getSceneEmittersByKey("waterfall");
-await ambienceForge.setSceneEmitterVolumeByKey("waterfall", 0.35);
-await ambienceForge.setSceneEmitterActiveByKey("waterfall", false);
-await ambienceForge.resetSceneEmitterLiveStateByKey("waterfall");
+await ambienceForge.setSceneEmitterVolumeByKey("waterfall", 0.35, { owner: "weather-forge", durationMs: 1200 });
+await ambienceForge.setSceneEmitterActiveByKey("waterfall", false, { owner: "weather-forge", durationMs: 1200 });
+await ambienceForge.resetSceneEmitterLiveStateByKey("waterfall", { owner: "weather-forge", durationMs: 800 });
 
 const exported = ambienceForge.exportAmbience(id);
 const imported = await ambienceForge.importAmbience(exported);
 ```
 
-Scene-emitter methods are also available through the same API. Scene Emitters expose a stable `key` for optional integrations. `setSceneEmitterVolume()` and `setSceneEmitterActive()` are temporary live controls; persistent emitter configuration remains the responsibility of `updateSceneEmitter()` and `setSceneEmitterEnabled()`. Key-based variants affect every matching emitter on the active Scene, which is useful for semantic groups such as several emitters sharing `torch`, `waterfall`, or `machinery`. Consumers should check `api.capabilities` rather than depending on private implementation details.
+Scene-emitter methods are also available through the same API. Scene Emitters expose a stable `key` for optional integrations. `setSceneEmitterVolume()` and `setSceneEmitterActive()` are temporary live controls with optional provider ownership and timed fades; persistent emitter configuration remains the responsibility of `updateSceneEmitter()` and `setSceneEmitterEnabled()`. Owner-scoped resets release only values still owned by that provider, while ownerless calls remain deliberate manual/global overrides. Key-based variants affect every matching emitter on the active Scene, which is useful for semantic groups such as several emitters sharing `torch`, `waterfall`, or `machinery`. Consumers should check `api.capabilities` rather than depending on private implementation details.
 
 Ambience Forge fires `ambienceForgeReady` when its public API is ready for integrations.
 

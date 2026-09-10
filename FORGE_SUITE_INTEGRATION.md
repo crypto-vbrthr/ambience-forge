@@ -312,13 +312,23 @@ Several emitters may intentionally share the same key. This makes it possible to
 
 ```js
 const api = game.modules.get("ambience-forge")?.api;
-if (api?.capabilities?.includes("scene-emitter-live-control-v1")) {
-  await api.setSceneEmitterVolumeByKey("waterfall", 0.35);
-  await api.setSceneEmitterActiveByKey("machinery", false);
+if (api?.capabilities?.includes("scene-emitter-owner-control-v1")) {
+  await api.setSceneEmitterVolumeByKey("waterfall", 0.35, {
+    owner: "weather-forge",
+    durationMs: 1200
+  });
+  await api.setSceneEmitterActiveByKey("machinery", false, {
+    owner: "weather-forge",
+    durationMs: 1200
+  });
 }
 ```
 
 These methods are **temporary runtime controls**. They do not rewrite the saved Scene Emitter configuration. Persistent configuration changes remain the responsibility of Ambience Forge itself or explicit calls to its documented persistent emitter methods.
+
+Emitter volume and active overrides keep independent owners. A provider should pass its stable module/provider key as `owner` and release its own values with `resetSceneEmitterLiveState()` or `resetSceneEmitterLiveStateByKey()` using the same owner. This prevents a delayed cleanup from one provider from erasing a newer override from another provider or from the GM. Omitting `owner` is treated as deliberate manual/global control and may replace or clear any existing temporary override.
+
+When `scene-emitter-fades-v1` is present, `durationMs` may be supplied to live volume, active, and reset calls. Fade-out keeps the spatial emitter runtime alive until the requested transition completes; fade-in and volume changes ramp toward the currently resolved spatial target, so distance and wall attenuation remain in effect.
 
 For the initial `scene-emitter-live-control-v1` contract, key-based methods affect all matching emitters on the active Scene. Integrations should not depend on Ambience Forge private flags or AmbientSound document IDs when a semantic key can express the intent.
 

@@ -82,11 +82,20 @@ export async function executeCommand(service, message) {
 export async function executeEmitterCommand(service, message) {
   switch (message.command) {
     case COMMANDS.EMITTER_LIVE_VOLUME:
-      return service.setEmitterLiveVolume(message.emitterId, message.volume, message.sceneId);
+      return service.setEmitterLiveVolume(message.emitterId, message.volume, message.sceneId, {
+        owner: message.owner,
+        durationMs: message.durationMs ?? 0
+      });
     case COMMANDS.EMITTER_LIVE_ACTIVE:
-      return service.setEmitterLiveActive(message.emitterId, message.active, message.sceneId);
+      return service.setEmitterLiveActive(message.emitterId, message.active, message.sceneId, {
+        owner: message.owner,
+        durationMs: message.durationMs ?? 0
+      });
     case COMMANDS.EMITTER_LIVE_RESET:
-      return service.resetEmitterLiveState(message.emitterId, message.sceneId);
+      return service.resetEmitterLiveState(message.emitterId, message.sceneId, {
+        owner: message.owner,
+        durationMs: message.durationMs ?? 0
+      });
     default:
       throw new Error(`Unknown Ambience Forge scene emitter socket command: ${message.command}`);
   }

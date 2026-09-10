@@ -27,6 +27,8 @@ test("semantic state discovery capabilities are advertised", () => {
 test("scene emitter live-control and semantic-key capabilities are advertised", () => {
   assert.match(source, /scene-emitter-keys-v1/);
   assert.match(source, /scene-emitter-live-control-v1/);
+  assert.match(source, /scene-emitter-owner-control-v1/);
+  assert.match(source, /scene-emitter-fades-v1/);
 });
 
 

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0-alpha.4 - 2026-09-10
+
+### Added
+- Owner-aware temporary Scene Emitter controls. Volume and active overrides now remember their independent provider/owner, and an owner-scoped reset only releases values still owned by that provider.
+- Timed Scene Emitter live fades through `durationMs` for volume changes, activation, deactivation, and reset-to-saved-state transitions.
+- Fade-in starts newly audible emitter runtimes at zero master gain and ramps to the current spatial target. Fade-out keeps the runtime alive until the requested transition has completed before stopping it.
+- `activeOwner` and `volumeOwner` fields in Scene Emitter live-state snapshots.
+- `scene-emitter-owner-control-v1` and `scene-emitter-fades-v1` public API capabilities. Public API version increased compatibly to `1.6`.
+- Vertical scrolling for Quick Control when its content exceeds the available viewport height.
+
+### Changed
+- Scene Emitter fade targets continue to respect the current distance/wall-derived spatial gain while a transition is active rather than replacing spatial playback rules.
+- Manual live control without an `owner` remains authoritative: it may replace an externally owned override, and an owner-scoped reset cannot later remove that manual value.
+- Quick Control preserves its scroll position across its normal internal re-renders.
+- Ambience data schema remains `5`; Scene Emitter persistent storage is unchanged because owner/fade state is runtime-only.
+
+### Development scope
+- Feature work for the planned 0.3.0 line is now complete. The next target is `0.3.0-rc.1` with review, regression tests, documentation verification, and feature freeze.
+
 ## 0.3.0-alpha.3 - 2026-09-10
 
 ### Added

@@ -89,6 +89,22 @@ function prospectiveEmitterMode(document, changes = {}) {
   }).obstructionMode;
 }
 
+function clamp01(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
+}
+
+function normalizeOwner(owner) {
+  if (owner == null || owner === "") return null;
+  return String(owner);
+}
+
+function normalizeDuration(durationMs) {
+  const n = Number(durationMs);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
 export class SceneEmitterService {
   constructor({
     getAmbienceService,
@@ -97,6 +113,8 @@ export class SceneEmitterService {
     getListeners = null,
     setIntervalFn = globalThis.setInterval?.bind(globalThis),
     clearIntervalFn = globalThis.clearInterval?.bind(globalThis),
+    setTimeoutFn = globalThis.setTimeout?.bind(globalThis),
+    clearTimeoutFn = globalThis.clearTimeout?.bind(globalThis),
     tickMs = 200,
     retryMs = 5000,
     nowFn = () => Date.now(),
@@ -109,6 +127,8 @@ export class SceneEmitterService {
     this.preferredListenerTokenId = null;
     this.setIntervalFn = setIntervalFn;
     this.clearIntervalFn = clearIntervalFn;
+    this.setTimeoutFn = setTimeoutFn;
+    this.clearTimeoutFn = clearTimeoutFn;
     this.tickMs = tickMs;
     this.retryMs = Math.max(this.tickMs, Number(retryMs) || 5000);
     this.nowFn = nowFn;
@@ -119,6 +139,7 @@ export class SceneEmitterService {
     this.timer = null;
     this.previewRuntime = null;
     this.liveControls = new Map();
+    this.liveTransitions = new Map();
   }
 
 
@@ -148,6 +169,73 @@ export class SceneEmitterService {
     return `${sceneId}:${String(id ?? "")}`;
   }
 
+  #clearLiveTransition(key) {
+    const transition = this.liveTransitions.get(key);
+    if (transition?.timer != null && this.clearTimeoutFn) this.clearTimeoutFn(transition.timer);
+    this.liveTransitions.delete(key);
+  }
+
+  #setLiveTransition(id, scene, kind, durationMs) {
+    const duration = normalizeDuration(durationMs);
+    const key = this.#liveControlKey(id, scene);
+    this.#clearLiveTransition(key);
+    if (!(duration > 0)) return null;
+
+    const startedAtMs = this.nowFn();
+    const transition = {
+      key,
+      id: String(id),
+      sceneId: String(scene?.id ?? scene?._id ?? ""),
+      kind,
+      startedAtMs,
+      durationMs: duration,
+      endsAtMs: startedAtMs + duration,
+      timer: null
+    };
+
+    if (this.setTimeoutFn) {
+      transition.timer = this.setTimeoutFn(() => {
+        void (async () => {
+          if (this.liveTransitions.get(key) !== transition) return;
+          this.liveTransitions.delete(key);
+          if (kind !== "active-out") return;
+          const activeScene = this.scene ?? globalThis.canvas?.scene;
+          if (String(activeScene?.id ?? activeScene?._id ?? "") !== transition.sceneId) return;
+          const liveState = this.getEmitterLiveState(id, scene);
+          if (liveState?.active === false) await this.#stopEmitter(id);
+        })().catch((error) => this.#reportError(error, { emitterId: id, phase: "live-transition" }));
+      }, duration);
+    }
+
+    this.liveTransitions.set(key, transition);
+    return transition;
+  }
+
+  #remainingTransitionMs(transition) {
+    if (!transition) return 0;
+    return Math.max(0, Number(transition.endsAtMs) - this.nowFn());
+  }
+
+  async #applyLiveControlTransition(id, scene, before, after, durationMs) {
+    const duration = normalizeDuration(durationMs);
+    const key = this.#liveControlKey(id, scene);
+    const activeScene = this.scene ?? globalThis.canvas?.scene;
+    const isActiveScene = String(activeScene?.id ?? activeScene?._id ?? "") === String(scene?.id ?? scene?._id ?? "");
+
+    if (before?.active === true && after?.active === false) {
+      if (duration > 0 && this.runtimes.has(id)) this.#setLiveTransition(id, scene, "active-out", duration);
+      else this.#clearLiveTransition(key);
+    } else if (before?.active === false && after?.active === true) {
+      if (duration > 0) this.#setLiveTransition(id, scene, "active-in", duration);
+      else this.#clearLiveTransition(key);
+    } else if (before?.active === true && after?.active === true && before.volume !== after.volume) {
+      if (duration > 0) this.#setLiveTransition(id, scene, "volume", duration);
+      else this.#clearLiveTransition(key);
+    }
+
+    if (isActiveScene) await this.tick();
+  }
+
   async activateScene(scene, { monitor = true } = {}) {
     await this.deactivateScene();
     this.scene = scene ?? null;
@@ -162,6 +250,7 @@ export class SceneEmitterService {
   async deactivateScene() {
     if (this.timer != null && this.clearIntervalFn) this.clearIntervalFn(this.timer);
     this.timer = null;
+    for (const key of [...this.liveTransitions.keys()]) this.#clearLiveTransition(key);
     const runtimes = [...this.runtimes.values()].map((entry) => entry.runtime);
     this.runtimes.clear();
     this.failures.clear();
@@ -198,9 +287,11 @@ export class SceneEmitterService {
       key: emitter.key,
       sceneId: String(scene?.id ?? scene?._id ?? ""),
       active: controls.activeOverride == null ? emitter.enabled !== false : Boolean(controls.activeOverride),
-      volume: controls.volumeOverride == null ? emitter.volume : Math.min(1, Math.max(0, Number(controls.volumeOverride) || 0)),
+      volume: controls.volumeOverride == null ? emitter.volume : clamp01(controls.volumeOverride),
       activeOverride: controls.activeOverride == null ? null : Boolean(controls.activeOverride),
-      volumeOverride: controls.volumeOverride == null ? null : Math.min(1, Math.max(0, Number(controls.volumeOverride) || 0)),
+      volumeOverride: controls.volumeOverride == null ? null : clamp01(controls.volumeOverride),
+      activeOwner: controls.activeOverride == null ? null : normalizeOwner(controls.activeOwner),
+      volumeOwner: controls.volumeOverride == null ? null : normalizeOwner(controls.volumeOwner),
       baseEnabled: emitter.enabled !== false,
       baseVolume: emitter.volume
     };
@@ -211,37 +302,64 @@ export class SceneEmitterService {
     return this.getEmitters(scene).map((emitter) => this.getEmitterLiveState(emitter.id, scene)).filter(Boolean);
   }
 
-  async setEmitterLiveVolume(id, volume, sceneOrId = this.scene ?? globalThis.canvas?.scene) {
+  async setEmitterLiveVolume(id, volume, sceneOrId = this.scene ?? globalThis.canvas?.scene, { owner = null, durationMs = 0 } = {}) {
     const scene = this.resolveScene(sceneOrId);
     const emitter = this.getEmitter(id, scene);
     if (!emitter) return null;
     const key = this.#liveControlKey(id, scene);
+    const before = this.getEmitterLiveState(id, scene);
     const controls = this.liveControls.get(key) ?? {};
-    controls.volumeOverride = Math.min(1, Math.max(0, Number(volume) || 0));
+    controls.volumeOverride = clamp01(volume);
+    controls.volumeOwner = normalizeOwner(owner);
     this.liveControls.set(key, controls);
-    if (scene === (this.scene ?? globalThis.canvas?.scene)) await this.tick();
-    return this.getEmitterLiveState(id, scene);
+    const after = this.getEmitterLiveState(id, scene);
+    await this.#applyLiveControlTransition(id, scene, before, after, durationMs);
+    return after;
   }
 
-  async setEmitterLiveActive(id, active, sceneOrId = this.scene ?? globalThis.canvas?.scene) {
+  async setEmitterLiveActive(id, active, sceneOrId = this.scene ?? globalThis.canvas?.scene, { owner = null, durationMs = 0 } = {}) {
     const scene = this.resolveScene(sceneOrId);
     const emitter = this.getEmitter(id, scene);
     if (!emitter) return null;
     const key = this.#liveControlKey(id, scene);
+    const before = this.getEmitterLiveState(id, scene);
     const controls = this.liveControls.get(key) ?? {};
     controls.activeOverride = Boolean(active);
+    controls.activeOwner = normalizeOwner(owner);
     this.liveControls.set(key, controls);
-    if (scene === (this.scene ?? globalThis.canvas?.scene)) await this.tick();
-    return this.getEmitterLiveState(id, scene);
+    const after = this.getEmitterLiveState(id, scene);
+    await this.#applyLiveControlTransition(id, scene, before, after, durationMs);
+    return after;
   }
 
-  async resetEmitterLiveState(id, sceneOrId = this.scene ?? globalThis.canvas?.scene) {
+  async resetEmitterLiveState(id, sceneOrId = this.scene ?? globalThis.canvas?.scene, { owner = null, durationMs = 0 } = {}) {
     const scene = this.resolveScene(sceneOrId);
     const emitter = this.getEmitter(id, scene);
     if (!emitter) return null;
-    this.liveControls.delete(this.#liveControlKey(id, scene));
-    if (scene === (this.scene ?? globalThis.canvas?.scene)) await this.tick();
-    return this.getEmitterLiveState(id, scene);
+    const key = this.#liveControlKey(id, scene);
+    const controls = this.liveControls.get(key);
+    if (!controls) return this.getEmitterLiveState(id, scene);
+    const before = this.getEmitterLiveState(id, scene);
+    const requestedOwner = normalizeOwner(owner);
+    let changed = false;
+
+    if (controls.volumeOverride != null && (requestedOwner == null || normalizeOwner(controls.volumeOwner) === requestedOwner)) {
+      delete controls.volumeOverride;
+      delete controls.volumeOwner;
+      changed = true;
+    }
+    if (controls.activeOverride != null && (requestedOwner == null || normalizeOwner(controls.activeOwner) === requestedOwner)) {
+      delete controls.activeOverride;
+      delete controls.activeOwner;
+      changed = true;
+    }
+    if (!changed) return false;
+
+    if (controls.volumeOverride == null && controls.activeOverride == null) this.liveControls.delete(key);
+    else this.liveControls.set(key, controls);
+    const after = this.getEmitterLiveState(id, scene);
+    await this.#applyLiveControlTransition(id, scene, before, after, durationMs);
+    return after;
   }
 
   #document(id, scene = this.scene ?? globalThis.canvas?.scene) {
@@ -334,7 +452,9 @@ export class SceneEmitterService {
       this.runtimes.delete(id);
     }
     this.failures.delete(id);
-    this.liveControls.delete(this.#liveControlKey(id, scene));
+    const liveKey = this.#liveControlKey(id, scene);
+    this.liveControls.delete(liveKey);
+    this.#clearLiveTransition(liveKey);
     if (scene?.deleteEmbeddedDocuments) await scene.deleteEmbeddedDocuments("AmbientSound", [id]);
     return true;
   }
@@ -391,7 +511,20 @@ export class SceneEmitterService {
       const emitter = emitterDataFromDocument(document);
       if (!emitter) continue;
       const liveState = this.getEmitterLiveState(emitter.id, scene);
+      const transitionKey = this.#liveControlKey(emitter.id, scene);
+      let transition = this.liveTransitions.get(transitionKey) ?? null;
+      let transitionRemainingMs = this.#remainingTransitionMs(transition);
+      if (transition && transitionRemainingMs <= 0) {
+        this.#clearLiveTransition(transitionKey);
+        transition = null;
+        transitionRemainingMs = 0;
+      }
       if (!liveState?.active) {
+        if (transition?.kind === "active-out" && transitionRemainingMs > 0) {
+          const entry = this.runtimes.get(emitter.id);
+          if (entry) await entry.runtime.setMasterVolume(0, { durationMs: transitionRemainingMs });
+          continue;
+        }
         await this.#stopEmitter(emitter.id);
         continue;
       }
@@ -436,7 +569,7 @@ export class SceneEmitterService {
             this.runtimes.delete(emitter.id);
           }
           const runtimeAmbience = cloneData(ambience);
-          runtimeAmbience.masterVolume = effectiveMaster;
+          runtimeAmbience.masterVolume = transition && transitionRemainingMs > 0 ? 0 : effectiveMaster;
           const runtime = new AmbienceRuntime({
             ambience: runtimeAmbience,
             backend: this.backend,
@@ -446,6 +579,9 @@ export class SceneEmitterService {
           await runtime.start();
           entry = { ambienceId: emitter.ambienceId, revision, stateRevision, runtime };
           this.runtimes.set(emitter.id, entry);
+          if (transition && transitionRemainingMs > 0) {
+            await entry.runtime.setMasterVolume(effectiveMaster, { durationMs: transitionRemainingMs });
+          }
         } else {
           if (entry.stateRevision !== stateRevision) {
             for (const group of ambience.stateGroups ?? []) {
@@ -456,7 +592,9 @@ export class SceneEmitterService {
             }
             entry.stateRevision = stateRevision;
           }
-          await entry.runtime.setMasterVolume(effectiveMaster, { durationMs: this.tickMs });
+          await entry.runtime.setMasterVolume(effectiveMaster, {
+            durationMs: transition && transitionRemainingMs > 0 ? transitionRemainingMs : this.tickMs
+          });
         }
         this.failures.delete(emitter.id);
       } catch (error) {
