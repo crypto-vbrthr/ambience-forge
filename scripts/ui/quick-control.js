@@ -120,6 +120,150 @@ function externalContextSection(api, state) {
   return section;
 }
 
+function sourceDisplayName(source) {
+  const value = String(source ?? "").trim();
+  if (!value) return "";
+  const clean = value.split(/[?#]/, 1)[0];
+  const segment = clean.split("/").filter(Boolean).at(-1) ?? clean;
+  try { return decodeURIComponent(segment); }
+  catch { return segment; }
+}
+
+function formatRuntimeTime(milliseconds, { remaining = false } = {}) {
+  const value = Number(milliseconds);
+  if (!Number.isFinite(value) || value < 0) return "";
+  const seconds = remaining ? Math.ceil(value / 1000) : Math.floor(value / 1000);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+    : `${minutes}:${String(secs).padStart(2, "0")}`;
+}
+
+function intensityVariantName(track, index, fallbackSource = "") {
+  const variant = Number.isInteger(index) ? track.variants?.[index] : null;
+  return String(variant?.name ?? "").trim() || sourceDisplayName(variant?.source ?? fallbackSource);
+}
+
+function runtimePresentation(track, status) {
+  const phase = String(status?.phase ?? "stopped");
+  const source = sourceDisplayName(status?.source);
+  const remaining = formatRuntimeTime(status?.remainingMs, { remaining: true });
+  const elapsed = formatRuntimeTime(status?.elapsedMs);
+  const duration = formatRuntimeTime(status?.durationMs);
+  let text = game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeStopped");
+  let detail = "";
+
+  if (phase === "idle") text = game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeIdle");
+  else if (phase === "finished") text = game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeFinished");
+  else if (phase === "waiting") {
+    const key = track.type === TRACK_TYPES.SEQUENCE
+      ? "AMBIENCE_FORGE.Quick.RuntimeSequenceWaiting"
+      : "AMBIENCE_FORGE.Quick.RuntimeRandomWaiting";
+    text = game.i18n.format(key, { remaining: remaining || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownTime") });
+  } else if (phase === "crossfading") {
+    const from = intensityVariantName(track, status?.transition?.fromVariantIndex, status?.transition?.fromSource);
+    const to = intensityVariantName(track, status?.transition?.toVariantIndex, status?.transition?.toSource);
+    text = game.i18n.format("AMBIENCE_FORGE.Quick.RuntimeCrossfade", {
+      from: from || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownSource"),
+      to: to || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownSource"),
+      remaining: remaining || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownTime")
+    });
+  } else if (phase === "playing") {
+    if (track.type === TRACK_TYPES.SEQUENCE) {
+      text = game.i18n.format("AMBIENCE_FORGE.Quick.RuntimeSequencePlaying", {
+        position: status?.sequencePosition ?? "–",
+        length: status?.sequenceLength ?? track.sources?.length ?? "–",
+        source: source || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownSource"),
+        remaining: remaining || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownTime")
+      });
+    } else if (track.type === TRACK_TYPES.RANDOM && Number(status?.activeSoundCount) > 1) {
+      text = game.i18n.format("AMBIENCE_FORGE.Quick.RuntimeRandomPlayingMultiple", {
+        count: Number(status.activeSoundCount),
+        source: source || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownSource"),
+        remaining: remaining || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownTime")
+      });
+    } else if (track.type === TRACK_TYPES.INTENSITY) {
+      const variant = String(status?.variantName ?? "").trim() || intensityVariantName(track, status?.variantIndex, status?.source);
+      text = game.i18n.format("AMBIENCE_FORGE.Quick.RuntimeIntensityPlaying", {
+        variant: variant || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownSource"),
+        elapsed: elapsed || "–",
+        duration: duration || "–"
+      });
+    } else if (status?.loop) {
+      text = game.i18n.format("AMBIENCE_FORGE.Quick.RuntimeLoopPlaying", {
+        source: source || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownSource"),
+        elapsed: elapsed || "–",
+        duration: duration || "–"
+      });
+    } else {
+      text = game.i18n.format("AMBIENCE_FORGE.Quick.RuntimePlaying", {
+        source: source || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownSource"),
+        remaining: remaining || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownTime")
+      });
+    }
+
+    if (track.type === TRACK_TYPES.RANDOM && status?.nextEventInMs != null) {
+      detail = game.i18n.format("AMBIENCE_FORGE.Quick.RuntimeNextEvent", {
+        remaining: formatRuntimeTime(status.nextEventInMs, { remaining: true }) || game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeUnknownTime")
+      });
+    }
+  }
+
+  const rawProgress = status?.progress;
+  const progress = rawProgress == null ? null : Number(rawProgress);
+  return {
+    text,
+    detail,
+    progress: Number.isFinite(progress) ? Math.min(1, Math.max(0, progress)) : null,
+    source
+  };
+}
+
+function runtimeStatusControl(ambience, track, status) {
+  const presentation = runtimePresentation(track, status);
+  const wrapper = element("div", {
+    className: "ambience-forge-track-runtime",
+    attrs: {
+      "data-af-runtime-status": "",
+      "data-ambience-id": ambience.id,
+      "data-track-id": track.id
+    }
+  });
+  const label = element("div", { className: "ambience-forge-track-runtime-label", text: presentation.text, attrs: { "data-af-runtime-label": "" } });
+  if (presentation.source) label.title = String(status?.source ?? presentation.source);
+  const progress = element("progress", {
+    className: "ambience-forge-track-runtime-progress",
+    attrs: { max: 1, "aria-label": game.i18n.localize("AMBIENCE_FORGE.Quick.RuntimeProgress"), "data-af-runtime-progress": "" }
+  });
+  progress.value = presentation.progress ?? 0;
+  progress.hidden = presentation.progress == null;
+  const detail = element("small", { className: "ambience-forge-track-runtime-detail", text: presentation.detail, attrs: { "data-af-runtime-detail": "" } });
+  detail.hidden = !presentation.detail;
+  wrapper.append(label, progress, detail);
+  return wrapper;
+}
+
+function updateRuntimeStatusControl(node, track, status) {
+  const presentation = runtimePresentation(track, status);
+  const label = node.querySelector("[data-af-runtime-label]");
+  const progress = node.querySelector("[data-af-runtime-progress]");
+  const detail = node.querySelector("[data-af-runtime-detail]");
+  if (label) {
+    label.textContent = presentation.text;
+    label.title = presentation.source ? String(status?.source ?? presentation.source) : "";
+  }
+  if (progress) {
+    progress.hidden = presentation.progress == null;
+    progress.value = presentation.progress ?? 0;
+  }
+  if (detail) {
+    detail.textContent = presentation.detail;
+    detail.hidden = !presentation.detail;
+  }
+}
+
 function activeTrackControl(ambience, track, state) {
   const trackId = track.id;
   const liveVolume = state.trackVolumes?.[ambience.id]?.[trackId] ?? track.volume ?? 1;
@@ -153,6 +297,9 @@ function activeTrackControl(ambience, track, state) {
     )
   );
   section.append(header);
+
+  const runtimeStatus = state.trackRuntimeStatuses?.[ambience.id]?.[trackId] ?? null;
+  section.append(runtimeStatusControl(ambience, track, runtimeStatus));
 
   section.append(field(
     game.i18n.localize("AMBIENCE_FORGE.Quick.TrackVolume"),
@@ -300,6 +447,7 @@ function getQuickAppClass() {
       super(options);
       this.api = api;
       this.selectedId = "";
+      this.runtimeRefreshTimer = null;
     }
 
     get title() {
@@ -312,6 +460,31 @@ function getQuickAppClass() {
 
     _replaceHTML(result, content) {
       content.replaceChildren(result);
+    }
+
+    _refreshRuntimeStatuses() {
+      const root = this.element;
+      if (!root) return;
+      const ambienceCache = new Map();
+      for (const node of root.querySelectorAll("[data-af-runtime-status]")) {
+        const ambienceId = String(node.dataset.ambienceId ?? "").trim();
+        const trackId = String(node.dataset.trackId ?? "").trim();
+        if (!ambienceId || !trackId) continue;
+        let ambience = ambienceCache.get(ambienceId);
+        if (!ambienceCache.has(ambienceId)) {
+          ambience = this.api.getAmbience(ambienceId);
+          ambienceCache.set(ambienceId, ambience ?? null);
+        }
+        const track = ambience?.tracks?.find((entry) => entry.id === trackId);
+        if (!track) continue;
+        const status = this.api.getTrackRuntimeStatus?.(ambienceId, trackId);
+        updateRuntimeStatusControl(node, track, status);
+      }
+    }
+
+    _startRuntimeRefresh() {
+      if (this.runtimeRefreshTimer != null) clearInterval(this.runtimeRefreshTimer);
+      this.runtimeRefreshTimer = setInterval(() => this._refreshRuntimeStatuses(), 500);
     }
 
     async _onRender(context, options) {
@@ -405,6 +578,15 @@ function getQuickAppClass() {
           }
         });
       }
+
+      this._refreshRuntimeStatuses();
+      this._startRuntimeRefresh();
+    }
+
+    async close(options = {}) {
+      if (this.runtimeRefreshTimer != null) clearInterval(this.runtimeRefreshTimer);
+      this.runtimeRefreshTimer = null;
+      return super.close(options);
     }
   };
 

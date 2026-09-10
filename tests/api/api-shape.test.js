@@ -9,7 +9,7 @@ const source = fs.readFileSync(path.resolve(here, "../../scripts/api/public-api.
 
 test("public API keeps the agreed integration surface", () => {
   for (const method of [
-    "isReady", "getAmbiences", "getAmbience", "getState", "exportAmbience", "importAmbience", "playAmbience", "stopAmbience",
+    "isReady", "getAmbiences", "getAmbience", "getState", "getRuntimeStatus", "getTrackRuntimeStatus", "exportAmbience", "importAmbience", "playAmbience", "stopAmbience",
     "requestAmbience", "releaseAmbience", "setMasterVolume", "setTrackVolume", "setTrackActive", "setTrackIntensity", "setState", "clearState", "getAmbiencesByKey", "getStateCatalog", "setStateByKey", "clearStateByKey", "setStateForActiveAmbiences", "clearStateForActiveAmbiences", "getContextStates", "setContextState", "clearContextState", "previewAudio", "previewLoop", "previewRandom", "previewSequence", "previewIntensity", "setPreviewIntensity", "stopPreview", "getSceneEmitters", "getSceneEmitter", "getSceneEmittersByKey", "getSceneEmitterLiveState", "getSceneEmitterLiveStates", "createSceneEmitter", "updateSceneEmitter", "setSceneEmitterEnabled", "setSceneEmitterVolume", "setSceneEmitterActive", "resetSceneEmitterLiveState", "setSceneEmitterVolumeByKey", "setSceneEmitterActiveByKey", "resetSceneEmitterLiveStateByKey", "deleteSceneEmitter", "previewSceneEmitter", "stopSceneEmitterPreview", "stopAll"
   ]) {
     assert.match(source, new RegExp(`\\b${method}\\b`));
@@ -27,4 +27,9 @@ test("semantic state discovery capabilities are advertised", () => {
 test("scene emitter live-control and semantic-key capabilities are advertised", () => {
   assert.match(source, /scene-emitter-keys-v1/);
   assert.match(source, /scene-emitter-live-control-v1/);
+});
+
+
+test("track runtime status capability is advertised", () => {
+  assert.match(source, /track-runtime-status-v1/);
 });

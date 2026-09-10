@@ -21,11 +21,11 @@ The module is intentionally optional infrastructure. Consumers should continue t
 
 ## Versioning and capabilities
 
-For Ambience Forge 0.3.0-alpha.1:
+For Ambience Forge 0.3.0-alpha.3:
 
 ```js
-api.version; // "1.4"
-api.getModuleVersion(); // "0.3.0-alpha.1"
+api.version; // "1.5"
+api.getModuleVersion(); // "0.3.0-alpha.3"
 api.capabilities; // frozen array of supported capability strings
 ```
 
@@ -51,6 +51,7 @@ Current capabilities:
 - `intensity-preview-v1`
 - `master-volume-v1`
 - `track-live-control-v1`
+- `track-runtime-status-v1`
 - `scene-emitters-v1`
 - `scene-emitter-markers-v1`
 - `scene-emitter-obstruction-v1`
@@ -233,6 +234,51 @@ Context ownership protects cleanup from unrelated callers. A clear request with 
 
 See [`FORGE_SUITE_INTEGRATION.md`](FORGE_SUITE_INTEGRATION.md) for the recommended Forge Suite key conventions and responsibility boundaries.
 
+
+## Track runtime status
+
+API 1.5 exposes read-only runtime observability for active tracks. This is local playback state and does not trigger socket traffic or persist anything to the world.
+
+```js
+const status = api.getTrackRuntimeStatus(ambienceId, trackId);
+const ambienceStatus = api.getRuntimeStatus(ambienceId);
+const allRuntime = api.getRuntimeStatus();
+```
+
+`getTrackRuntimeStatus()` returns `null` when the ambience or track has no active runtime. `getRuntimeStatus(ambienceId)` returns the active composition runtime or `null`; calling it without an ID returns all currently active composition runtimes. `getState()` also includes the same per-track snapshots under `trackRuntimeStatuses` for consumers that already use the general state snapshot.
+
+Every track status includes the common fields:
+
+```js
+{
+  trackId,
+  type,
+  active,
+  phase,          // "stopped" | "idle" | "waiting" | "playing" | "crossfading" | "finished"
+  source,
+  startedAtMs,
+  endsAtMs,
+  durationMs,
+  elapsedMs,
+  remainingMs,
+  progress,       // normalized 0..1 when a finite phase/cycle is known
+  activeSounds
+}
+```
+
+The values are intended for status displays and diagnostics. They are snapshots: consumers should query again when they need refreshed countdown/progress values. No polling faster than the UI actually needs is recommended.
+
+Quick Control uses these snapshots directly and refreshes only the visible runtime indicators at a 500 ms interval. It does not re-render the whole window, persist data, or send socket messages for countdown/progress updates.
+
+Track-specific additions include:
+
+- **Audio:** `loop` and loop-cycle timing for repeating audio. A completed non-repeating Audio track reports `phase: "finished"`.
+- **Random:** `activeSoundCount`, `activeSounds`, `nextEventAtMs`, and `nextEventInMs`. With overlap enabled, several active sounds may be reported while the next event is already counting down.
+- **Sequence:** `sequenceIndex`, one-based `sequencePosition`, `sequenceLength`, plus the next scheduled event timing.
+- **Intensity:** `intensity`, `variantIndex`, one-based `variantPosition`, `variantCount`, `variantName`, and a `transition` object while a variant crossfade is in progress.
+
+This status API intentionally contains no controller handles, Web Audio nodes, Foundry `Sound` objects, or other private runtime objects. Integrations should check the `track-runtime-status-v1` capability before depending on it.
+
 ## Preview API
 
 Preview methods are intended for local editing and tooling rather than synchronized session playback:
@@ -321,7 +367,7 @@ await api.setSceneEmitterActiveByKey("machinery", false);
 await api.resetSceneEmitterLiveStateByKey("waterfall");
 ```
 
-Persistent configuration still uses `updateSceneEmitter()` or `setSceneEmitterEnabled()`. Alpha.1 intentionally provides basic synchronized live state only; owner arbitration and timed fades are reserved for a later 0.3.0 alpha.
+Persistent configuration still uses `updateSceneEmitter()` or `setSceneEmitterEnabled()`. The current 0.3.0 alpha line still reserves owner arbitration and timed emitter fades for a later step.
 
 ## Integration guidance
 
@@ -348,7 +394,7 @@ Hooks.once("ambienceForgeReady", async (api) => {
 
 ## Compatibility promise for API v1.x
 
-The 1.x public API is treated as an integration contract. API 1.4 extends 1.3 with semantic Scene Emitter keys and synchronized temporary emitter live controls and does not remove the earlier 1.0–1.3 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
+The 1.x public API is treated as an integration contract. API 1.5 extends 1.4 with read-only track runtime status and does not remove the earlier 1.0–1.4 methods. If a future release requires an incompatible public API change, it should expose a new API version or capability rather than silently changing existing documented methods.
 
 
 ## Multiple context groups from one provider

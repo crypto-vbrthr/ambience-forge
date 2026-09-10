@@ -17,7 +17,7 @@ test("distribution includes license and current changelog entry", () => {
   const license = fs.readFileSync(path.join(root, "LICENSE"), "utf8");
   const changelog = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
   assert.match(license, /MIT License/);
-  assert.match(changelog, /0\.3\.0-alpha\.1/);
+  assert.match(changelog, /0\.3\.0-alpha\.3/);
   assert.equal(fs.existsSync(path.join(root, "API.md")), true);
   assert.equal(fs.existsSync(path.join(root, "FORGE_SUITE_INTEGRATION.md")), true);
   const convention = fs.readFileSync(path.join(root, "FORGE_SUITE_INTEGRATION.md"), "utf8");
@@ -28,7 +28,7 @@ test("distribution includes license and current changelog entry", () => {
 test("manifest and package use the current release entry point", () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "module.json"), "utf8"));
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-  assert.equal(manifest.version, "0.3.0-alpha.1");
+  assert.equal(manifest.version, "0.3.0-alpha.3");
   assert.equal(pkg.version, manifest.version);
   assert.deepEqual(manifest.esmodules, ["scripts/main.js"]);
   assert.equal(fs.existsSync(path.join(root, "scripts/main.js")), true);

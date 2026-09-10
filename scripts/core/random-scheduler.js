@@ -12,6 +12,12 @@ export class RandomScheduler {
     this.handles = new Set();
   }
 
+  now() {
+    if (typeof this.clock?.now === "number") return this.clock.now;
+    if (typeof this.clock?.Date?.now === "function") return this.clock.Date.now();
+    return Date.now();
+  }
+
   delay(minMs, maxMs) {
     return Math.round(randomBetween(minMs, maxMs, this.random));
   }

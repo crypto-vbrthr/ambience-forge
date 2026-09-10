@@ -71,3 +71,40 @@ test("Quick Control groups multiple external context values by provider", () => 
   assert.match(source, /ambience-forge-external-provider-states/);
   assert.match(css, /\.ambience-forge-external-provider\s*\{/);
 });
+
+test("Quick Control renders read-only runtime status and progress for tracks", () => {
+  assert.match(source, /data-af-runtime-status/);
+  assert.match(source, /data-af-runtime-label/);
+  assert.match(source, /data-af-runtime-progress/);
+  assert.match(source, /element\("progress"/);
+  assert.match(source, /state\.trackRuntimeStatuses/);
+});
+
+test("Quick Control refreshes runtime snapshots locally without full rerenders", () => {
+  assert.match(source, /this\.api\.getTrackRuntimeStatus\?\.\(ambienceId, trackId\)/);
+  assert.match(source, /setInterval\(\(\) => this\._refreshRuntimeStatuses\(\), 500\)/);
+  assert.match(source, /clearInterval\(this\.runtimeRefreshTimer\)/);
+  assert.match(source, /async close\(options = \{\}\)/);
+});
+
+test("Quick Control runtime presentation covers Random, Sequence, loop and Intensity phases", () => {
+  assert.match(source, /RuntimeRandomWaiting/);
+  assert.match(source, /RuntimeRandomPlayingMultiple/);
+  assert.match(source, /RuntimeSequenceWaiting/);
+  assert.match(source, /RuntimeSequencePlaying/);
+  assert.match(source, /RuntimeLoopPlaying/);
+  assert.match(source, /RuntimeIntensityPlaying/);
+  assert.match(source, /RuntimeCrossfade/);
+});
+
+test("Quick Control shortens source paths for display while preserving the full path as a tooltip", () => {
+  assert.match(source, /function sourceDisplayName\(source\)/);
+  assert.match(source, /split\("\/"\)/);
+  assert.match(source, /label\.title = presentation\.source \? String\(status\?\.source/);
+});
+
+test("Quick Control progress styling is compact and non-interactive", () => {
+  assert.match(css, /\.ambience-forge-track-runtime-progress\s*\{/);
+  assert.match(css, /pointer-events:\s*none/);
+  assert.match(css, /height:\s*0\.45rem/);
+});

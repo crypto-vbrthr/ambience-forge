@@ -259,5 +259,20 @@
   "AMBIENCE_FORGE.Quick.ExternalOverrideHint": "Dieser Zustand wird von einem anderen Modul geliefert und kann bei der nächsten Synchronisierung wiederhergestellt werden.",
   "AMBIENCE_FORGE.Quick.ManualControl": "Externe Quelle",
   "AMBIENCE_FORGE.Emitter.ApiKey": "API-Schlüssel",
-  "AMBIENCE_FORGE.Emitter.ApiKeyHint": "Stabiler technischer Schlüssel für Integrationen. Solange das Feld leer bleibt, wird er aus dem Namen der Klangquelle erzeugt. Mehrere Klangquellen dürfen absichtlich denselben Schlüssel für eine gemeinsame Steuerung verwenden."
+  "AMBIENCE_FORGE.Emitter.ApiKeyHint": "Stabiler technischer Schlüssel für Integrationen. Solange das Feld leer bleibt, wird er aus dem Namen der Klangquelle erzeugt. Mehrere Klangquellen dürfen absichtlich denselben Schlüssel für eine gemeinsame Steuerung verwenden.",
+  "AMBIENCE_FORGE.Quick.RuntimeStopped": "Gestoppt",
+  "AMBIENCE_FORGE.Quick.RuntimeIdle": "Bereit",
+  "AMBIENCE_FORGE.Quick.RuntimeFinished": "Beendet",
+  "AMBIENCE_FORGE.Quick.RuntimeUnknownTime": "unbekannt",
+  "AMBIENCE_FORGE.Quick.RuntimeUnknownSource": "unbekannte Datei",
+  "AMBIENCE_FORGE.Quick.RuntimeProgress": "Wiedergabefortschritt",
+  "AMBIENCE_FORGE.Quick.RuntimeRandomWaiting": "Pause · nächster Sound in {remaining}",
+  "AMBIENCE_FORGE.Quick.RuntimeSequenceWaiting": "Pause · nächster Eintrag in {remaining}",
+  "AMBIENCE_FORGE.Quick.RuntimePlaying": "Spielt: {source} · noch {remaining}",
+  "AMBIENCE_FORGE.Quick.RuntimeLoopPlaying": "Loop läuft: {source} · {elapsed} / {duration}",
+  "AMBIENCE_FORGE.Quick.RuntimeSequencePlaying": "Spielt {position}/{length}: {source} · noch {remaining}",
+  "AMBIENCE_FORGE.Quick.RuntimeRandomPlayingMultiple": "{count} Sounds aktiv · zuletzt: {source} · noch {remaining}",
+  "AMBIENCE_FORGE.Quick.RuntimeNextEvent": "Nächstes Ereignis in {remaining}",
+  "AMBIENCE_FORGE.Quick.RuntimeIntensityPlaying": "Aktiv: {variant} · Loop {elapsed} / {duration}",
+  "AMBIENCE_FORGE.Quick.RuntimeCrossfade": "Überblendung: {from} → {to} · noch {remaining}"
 }

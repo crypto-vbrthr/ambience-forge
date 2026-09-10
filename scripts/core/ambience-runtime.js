@@ -95,6 +95,19 @@ export class AmbienceRuntime {
       .map(([trackId, controller]) => [trackId, Boolean(controller.running)]));
   }
 
+  getTrackRuntimeStatus(trackId) {
+    const controller = this.controllers.get(trackId);
+    return controller?.getRuntimeStatus?.() ?? null;
+  }
+
+  getRuntimeStatus() {
+    return {
+      running: Boolean(this.running),
+      tracks: Object.fromEntries([...this.controllers.entries()]
+        .map(([trackId, controller]) => [trackId, controller.getRuntimeStatus?.() ?? null]))
+    };
+  }
+
   async setTrackActive(trackId, active, options = {}) {
     const controller = this.controllers.get(trackId);
     if (!controller) return false;

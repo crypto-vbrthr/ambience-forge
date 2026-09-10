@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.3.0-alpha.3 - 2026-09-10
+
+### Added
+- Quick Control now renders the alpha.2 track-runtime snapshots as compact live status rows for every track.
+- Read-only progress bars for finite sound playback, Random/Sequence pauses, loop cycles, and Intensity crossfades.
+- Localized status text for playing, waiting, finished, stopped, loop playback, Random overlap, Sequence position, Intensity variants, and crossfade transitions.
+- Current sound filenames are reduced to a readable basename in the UI while the full source path remains available as a tooltip.
+
+### Changed
+- Quick Control refreshes only its runtime-status DOM nodes every 500 ms instead of re-rendering the full ApplicationV2 window, so sliders and other live controls remain stable while countdowns advance.
+- Runtime progress refresh is entirely local and read-only; it introduces no new socket traffic, persistence, or audio-engine behavior.
+- Public API remains `1.5` and the Ambience data schema remains `5`.
+
+### Development scope
+- Scene Emitter owner arbitration and timed live fades remain reserved for the next 0.3.0 development step.
+
+## 0.3.0-alpha.2 - 2026-09-10
+
+### Added
+- Read-only per-track runtime status for Audio, Random, Sequence, and Intensity tracks.
+- `getTrackRuntimeStatus(ambienceId, trackId)` and `getRuntimeStatus(ambienceId?)` public API methods.
+- `trackRuntimeStatuses` in the existing `getState()` snapshot for efficient consumers such as Quick Control.
+- Runtime timing data for current playback/wait phases: source, start/end, duration, elapsed/remaining time, and normalized progress.
+- Random-track overlap and next-event status, Sequence position/length, repeating Audio loop-cycle progress, and Intensity variant/crossfade status.
+- `track-runtime-status-v1` capability. Public API version increased compatibly to `1.5`.
+
+### Changed
+- Track scheduling now exposes a clock abstraction used only for deterministic runtime-status timestamps and tests; playback scheduling behavior is unchanged.
+- Runtime status is deliberately read-only and contains no backend handles, Web Audio nodes, or Foundry `Sound` objects.
+
+### Development scope
+- Quick Control visuals are intentionally unchanged in alpha.2. Progress bars, countdown text, and live status rendering are reserved for alpha.3.
+- Scene Emitter owner arbitration and timed fades remain scheduled for a later 0.3.0 alpha.
+
 ## 0.3.0-alpha.1 - 2026-09-10
 
 ### Added

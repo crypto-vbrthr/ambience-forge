@@ -201,6 +201,24 @@ export class AmbienceService {
     return { compositions: cloneData(compositions) };
   }
 
+  getTrackRuntimeStatus(ambienceId, trackId) {
+    return cloneData(this.runtimes.get(ambienceId)?.getTrackRuntimeStatus(trackId) ?? null);
+  }
+
+  getRuntimeStatus(ambienceId = null) {
+    if (ambienceId != null) {
+      const runtime = this.runtimes.get(String(ambienceId));
+      if (!runtime) return null;
+      return cloneData({ ambienceId: String(ambienceId), ...runtime.getRuntimeStatus() });
+    }
+    return cloneData({
+      ambiences: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, {
+        ambienceId: id,
+        ...runtime.getRuntimeStatus()
+      }]))
+    });
+  }
+
   getState() {
     return {
       activeAmbienceIds: [...this.runtimes.keys()],
@@ -208,6 +226,7 @@ export class AmbienceService {
       trackVolumes: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackVolumes()])),
       trackActiveStates: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackActiveStates()])),
       trackIntensities: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getTrackIntensities()])),
+      trackRuntimeStatuses: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getRuntimeStatus().tracks])),
       ambienceStates: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getStateSelectionsByKey()])),
       ambienceStateOwners: Object.fromEntries([...this.runtimes.entries()].map(([id, runtime]) => [id, runtime.getStateOwners()])),
       contextStates: this.getContextStates(),

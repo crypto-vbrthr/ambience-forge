@@ -321,3 +321,19 @@ if (api?.capabilities?.includes("scene-emitter-live-control-v1")) {
 These methods are **temporary runtime controls**. They do not rewrite the saved Scene Emitter configuration. Persistent configuration changes remain the responsibility of Ambience Forge itself or explicit calls to its documented persistent emitter methods.
 
 For the initial `scene-emitter-live-control-v1` contract, key-based methods affect all matching emitters on the active Scene. Integrations should not depend on Ambience Forge private flags or AmbientSound document IDs when a semantic key can express the intent.
+
+
+## Runtime Status Integration
+
+Forge Suite modules that need to display or diagnose Ambience Forge playback may use the public runtime-status API instead of reading private controllers or audio objects.
+
+```js
+const api = game.modules.get("ambience-forge")?.api;
+if (api?.capabilities?.includes("track-runtime-status-v1")) {
+  const status = api.getTrackRuntimeStatus(ambienceId, trackId);
+}
+```
+
+The status model reports semantic playback information such as `playing`, `waiting`, or `crossfading`, the current source, remaining time and progress, Random overlap, Sequence position, and Intensity transitions. It is read-only and local. Querying it does not broadcast socket messages or modify saved compositions.
+
+Integrations should treat these values as short-lived snapshots and should not depend on Ambience Forge private handles, Web Audio nodes, or scheduler internals.

@@ -259,5 +259,20 @@
   "AMBIENCE_FORGE.Quick.ExternalOverrideHint": "This state is supplied by another module and may be restored on its next synchronization.",
   "AMBIENCE_FORGE.Quick.ManualControl": "External source",
   "AMBIENCE_FORGE.Emitter.ApiKey": "API key",
-  "AMBIENCE_FORGE.Emitter.ApiKeyHint": "Stable technical key for integrations. It is generated from the emitter name while left blank; multiple emitters may intentionally share the same key for group control."
+  "AMBIENCE_FORGE.Emitter.ApiKeyHint": "Stable technical key for integrations. It is generated from the emitter name while left blank; multiple emitters may intentionally share the same key for group control.",
+  "AMBIENCE_FORGE.Quick.RuntimeStopped": "Stopped",
+  "AMBIENCE_FORGE.Quick.RuntimeIdle": "Ready",
+  "AMBIENCE_FORGE.Quick.RuntimeFinished": "Finished",
+  "AMBIENCE_FORGE.Quick.RuntimeUnknownTime": "unknown",
+  "AMBIENCE_FORGE.Quick.RuntimeUnknownSource": "unknown source",
+  "AMBIENCE_FORGE.Quick.RuntimeProgress": "Playback progress",
+  "AMBIENCE_FORGE.Quick.RuntimeRandomWaiting": "Pause · next sound in {remaining}",
+  "AMBIENCE_FORGE.Quick.RuntimeSequenceWaiting": "Pause · next entry in {remaining}",
+  "AMBIENCE_FORGE.Quick.RuntimePlaying": "Playing: {source} · {remaining} remaining",
+  "AMBIENCE_FORGE.Quick.RuntimeLoopPlaying": "Looping: {source} · {elapsed} / {duration}",
+  "AMBIENCE_FORGE.Quick.RuntimeSequencePlaying": "Playing {position}/{length}: {source} · {remaining} remaining",
+  "AMBIENCE_FORGE.Quick.RuntimeRandomPlayingMultiple": "{count} sounds playing · latest: {source} · {remaining} remaining",
+  "AMBIENCE_FORGE.Quick.RuntimeNextEvent": "Next event in {remaining}",
+  "AMBIENCE_FORGE.Quick.RuntimeIntensityPlaying": "Active: {variant} · loop {elapsed} / {duration}",
+  "AMBIENCE_FORGE.Quick.RuntimeCrossfade": "Crossfade: {from} → {to} · {remaining} remaining"
 }
